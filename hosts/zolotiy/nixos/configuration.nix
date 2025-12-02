@@ -2,7 +2,7 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, config-variables, ... }:
 
 {
   imports =
@@ -191,7 +191,7 @@
   };
 
   networking = {
-    hostName = "zolotiy";
+    hostName = config-variables.hostname;
 
     enableIPv6 = true;
 
@@ -204,7 +204,7 @@
     };
 
     interfaces = {
-      # Should not use this, setting it mroe to track the auto-detected interface.
+      # Should not use this, setting it more to track the auto-detected interface.
       wlp0s20f3 = {
       };
     };
@@ -423,10 +423,10 @@
 
   users = {
     users = {
-      ivan = {
+      ${config-variables.username} = {
         enable = true;
         isNormalUser = true;
-        description = "Ivan Lazar Miljenovic";
+        description = config-variables.userDesc;
         extraGroups = [
           "audio"
           "video"
@@ -438,6 +438,7 @@
           guvcview
           dell-command-configure
           emacs-pgtk
+          home-manager
         ];
       };
     };
@@ -460,7 +461,7 @@
   # and migrated your data accordingly.
   #
   # For more information, see `man configuration.nix` or https://nixos.org/manual/nixos/stable/options#opt-system.stateVersion .
-  system.stateVersion = "25.05"; # Did you read the comment?
+  system.stateVersion = config-variables.stateVersion; # Did you read the comment?
   
   # Set your time zone.
   time.timeZone = "Asia/Singapore";
