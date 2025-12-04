@@ -376,7 +376,7 @@
         };
       };
 
-      defaultSession = "cosmic";
+      defaultSession = "plasma";
     };
 
     fstrim = {
