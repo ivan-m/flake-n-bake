@@ -15,11 +15,11 @@
       experimental-features = [ "nix-command" "flakes" ];
     };
   };
-  
+
   # Use the systemd-boot EFI boot loader.
   boot = {
     #kernelPackages = pkgs.linuxPackages_latest;
- 
+
 
     kernelPackages =  pkgs.linuxPackagesFor (pkgs.linux_6_17.override {
 	    argsOverride = rec {
@@ -31,7 +31,7 @@
 	      modDirVersion = "6.17.7";
 	    };
     });
-    
+
     loader = {
       systemd-boot = {
         enable = true;
@@ -42,7 +42,7 @@
         canTouchEfiVariables = true;
       };
     };
-    
+
     initrd = {
       enable = true;
      # verbose = false;
@@ -71,7 +71,7 @@
         };
       };
     };
-    
+
     tmp = {
       useTmpfs = true;
     };
@@ -118,11 +118,11 @@
   hardware = {
     enableAllFirmware = true;
     enableRedistributableFirmware = true;
-    
+
     bluetooth = {
       enable = true;
     };
-    
+
     cpu = {
       intel = {
         updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
@@ -134,7 +134,7 @@
       pkgs.linux-firmware # includes cs35l56-* & friends
       pkgs.alsa-firmware
     ];
-    
+
     graphics = {
       enable = true;
 
@@ -149,23 +149,30 @@
     intel-gpu-tools = {
       #enable = true;
     };
-    
+
     ipu6 = {
       #enable = true;
       platform = "ipu6epmtl"; # Actually for Meteor Lake, no Lunar Lake option as yet.
     };
-    
+
     # seems to require using the nixos-hardware repo, but it's already working so no need?
     # intelgpu = {
     #   driver = "xe";
     #   vaapiDriver = "intel-media-driver";
-    # };      
-    
+    # };
+
+    logitech = {
+      wireless = {
+        enable = true;
+        enableGraphical = true;
+      };
+    };
+
     printers = {
       ensurePrinters = [
       ];
     };
-    
+
     sane = {
       enable = true;
       # brscan4 = {
@@ -188,7 +195,7 @@
       };
     };
   };
-  
+
 
   # Select internationalisation properties.
   # i18n.defaultLocale = "en_US.UTF-8";
@@ -208,7 +215,7 @@
     enableIPv6 = true;
 
     # useDHCP = true; # Doesn't work with networkmanager.
-    
+
     networkmanager = {
       enable = true;
 
@@ -248,7 +255,7 @@
         enable = false; # xprop warnings when sudo to root
       };
     };
-    
+
     command-not-found = {
       enable = true;
     };
@@ -307,7 +314,7 @@
       remotePlay = {
         openFirewall = true;
       };
-      
+
       protontricks = {
         enable = true;
       };
@@ -333,7 +340,7 @@
       # Required for pipewire to work
     };
   };
-  
+
   services = {
     acpid = {
       enable = false; # I think this is handled by the DE
@@ -343,6 +350,10 @@
       enable = false; # also by DE?
     };
 
+    ayatana-indicators = {
+      enable = true;
+    };
+
     blueman = {
       enable = false;
     };
@@ -350,7 +361,7 @@
     desktopManager = {
       cosmic = {
         enable = true;
-        
+
         xwayland = {
           enable = true;
         };
@@ -382,11 +393,11 @@
     fstrim = {
       enable = true;
     };
-    
+
     openssh = {
       enable = true;
     };
-    
+
     printing = {
       enable = true;
     };
@@ -450,12 +461,15 @@
           guvcview
           dell-command-configure
           emacs-pgtk
+          libreoffice-qt
+          hunspell
+          hunspellDicts.en_AU
           home-manager
         ];
       };
     };
   };
-  
+
   # This option defines the first version of NixOS you have installed on this particular machine,
   # and is used to maintain compatibility with application data (e.g. databases) created on older NixOS versions.
   #
@@ -474,7 +488,7 @@
   #
   # For more information, see `man configuration.nix` or https://nixos.org/manual/nixos/stable/options#opt-system.stateVersion .
   system.stateVersion = config-variables.stateVersion; # Did you read the comment?
-  
+
   # Set your time zone.
   time.timeZone = "Asia/Singapore";
 
@@ -484,4 +498,3 @@
     };
   };
 }
-
