@@ -18,19 +18,19 @@
 
   # Use the systemd-boot EFI boot loader.
   boot = {
-    #kernelPackages = pkgs.linuxPackages_latest;
+    kernelPackages = pkgs.linuxPackages_latest;
 
 
-    kernelPackages =  pkgs.linuxPackagesFor (pkgs.linux_6_17.override {
-	    argsOverride = rec {
-		    src = pkgs.fetchurl {
-          url = "mirror://kernel/linux/kernel/v6.x/linux-${version}.tar.xz";
-          sha256 = "sha256-3fLqDUQ54dVxNr42IxAq+UWPYB9bHLd+gyRuiK6gnQ4=";
-	      };
-	      version = "6.17.7";
-	      modDirVersion = "6.17.7";
-	    };
-    });
+    # kernelPackages =  pkgs.linuxPackagesFor (pkgs.linux_6_17.override {
+	  #   argsOverride = rec {
+		#     src = pkgs.fetchurl {
+    #       url = "mirror://kernel/linux/kernel/v6.x/linux-${version}.tar.xz";
+    #       sha256 = "sha256-3fLqDUQ54dVxNr42IxAq+UWPYB9bHLd+gyRuiK6gnQ4=";
+	  #     };
+	  #     version = "6.17.7";
+	  #     modDirVersion = "6.17.7";
+	  #   };
+    # });
 
     loader = {
       systemd-boot = {
