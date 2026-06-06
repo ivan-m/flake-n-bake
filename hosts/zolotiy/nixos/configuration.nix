@@ -257,7 +257,8 @@
     };
 
     command-not-found = {
-      enable = true;
+      # Doesn't seem to like flakes, using nix-index via home-manager.
+      enable = false;
     };
 
     corefreq = {
