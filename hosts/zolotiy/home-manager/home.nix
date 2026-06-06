@@ -20,6 +20,7 @@
   home.homeDirectory = "/home/" + config-variables.username;
   home.stateVersion = config-variables.stateVersion;
   home.packages = with pkgs; [
+    atool
     chromium
     solaar
   ];
