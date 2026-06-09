@@ -1,39 +1,45 @@
 {
   description = "Ivan's attempt at bringing order to his computer chaos";
-  
+
   inputs = {
     # One thing I don't like about Flakes is that I can't parametrise
     # the NixOS version here with a variable.
-    
+
     # Using unstable here for now for hardware compatibility.
     #
     # Switch to being based on nixos-25.11 once that's available (and
     # if it works).
     #
     # Or nevermind, just use unstable since it's pinned?
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs = {
+      url = "github:NixOS/nixpkgs/nixos-unstable";
+    };
 
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
-    # Also see the 'unstable-packages' overlay at 'overlays/default.nix'.
-    
+    # Not currently used.
+    nixpkgs-unstable = {
+      url = "github:nixos/nixpkgs/nixos-unstable";
+    };
+
     # Home manager
     #
     # Is this going to work where I always use live home-manager even
     # if I have a versioned nixpkgs?
-    home-manager.url = "github:nix-community/home-manager";
-    home-manager.inputs.nixpkgs.follows = "nixpkgs"; 
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, home-manager, ... }:
     let
       inherit (self) outputs;
-      
+
+      # Can we somehow map over a list of system configurations to get
+      # this?
       systems = [
         "x86_64-linux"
       ];
-      
+
       # Not sure what this is for, but seems recommended.
-      #
-      #
       forAllSystems = nixpkgs.lib.genAttrs systems;
 
       # This defines a function that takes in a config-variables block
@@ -66,11 +72,10 @@
         system = "x86_64-linux";
       };
     in {
-      
       nixosConfigurations = {
         zolotiy = zolotiy.nixosConfiguration;
       };
-      
+
       homeConfigurations = {
         # Can we somehow get this to be based upon the username?
         "ivan@zolotiy" = zolotiy.homeConfiguration;

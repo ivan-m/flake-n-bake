@@ -21,12 +21,15 @@
       package = pkgs.emacs-pgtk;
     };
   };
-  home.username = config-variables.username;
-  home.homeDirectory = "/home/" + config-variables.username;
-  home.stateVersion = config-variables.stateVersion;
-  home.packages = with pkgs; [
-    atool
-    chromium
-    solaar
-  ];
+
+  home = {
+    username = config-variables.username;
+    homeDirectory = "/home/" + config-variables.username;
+    stateVersion = config-variables.stateVersion;
+    packages = with pkgs; [
+      atool
+      chromium
+      solaar
+    ];
+  };
 }
