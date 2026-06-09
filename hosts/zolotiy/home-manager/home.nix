@@ -15,6 +15,11 @@
       enable = true;
       enableBashIntegration = true;
     };
+    emacs = {
+      enable = true;
+      # Pure GTK version for Wayland
+      package = pkgs.emacs-pgtk;
+    };
   };
   home.username = config-variables.username;
   home.homeDirectory = "/home/" + config-variables.username;
