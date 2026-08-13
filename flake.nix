@@ -28,8 +28,22 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    emacs-overlay = {
+      url = "github:nix-community/emacs-overlay";
+      inputs = {
+        nixpkgs.follows = "nixpkgs-unstable"; # Defaults to unstable
+        nixpkgs-stable.follows = "nixpkgs"; # In case we ever use an actual version.
+      };
+    };
+
+    # Optional Emacs config flake input (can be overridden per system)
+    # emacs-config = {
+    #   url = "github:yourusername/emacs-config";
+    #   flake = false;  # Just get the files, not a full flake output
+    # };
   };
-  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, home-manager, ... }:
+  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, home-manager, emacs-overlay, ... }:
     let
       inherit (self) outputs;
 
@@ -48,19 +62,48 @@
       # It's a little disconcerting that we never seem to actually
       # define what the config-variables record data structure
       # actually is...
-      configuration = config-variables: {
-        nixosConfiguration = nixpkgs.lib.nixosSystem {
-          specialArgs = {
-            inherit inputs outputs config-variables;
+      configuration = config-variables:
+        let
+          # Intelligently determine the Emacs config source and type
+          emacsConfigResolved =
+            if config-variables ? emacsConfig then
+              let
+                cfg = config-variables.emacsConfig;
+                # If it's a string, treat it as a path; otherwise it's a flake input
+                isPath = builtins.isString cfg;
+                source =
+                  if isPath then
+                    cfg
+                  else
+                    cfg;  # Already resolved flake input
+              in
+                {
+                  source = source;
+                  isPath = isPath;
+                }
+            else
+              {
+                source = null;
+                isPath = false;
+              };
+        in
+          {
+            nixosConfiguration = nixpkgs.lib.nixosSystem {
+              specialArgs = {
+                inherit inputs outputs config-variables emacs-overlay;
+              };
+              modules = [./hosts/${config-variables.hostname}/nixos/configuration.nix];
+            };
+            homeConfiguration = home-manager.lib.homeManagerConfiguration {
+              pkgs = nixpkgs.legacyPackages.${config-variables.system};
+              extraSpecialArgs = {
+                inherit inputs outputs config-variables emacs-overlay;
+                emacsConfigSource = emacsConfigResolved.source;
+                emacsConfigIsPath = emacsConfigResolved.isPath;
+              };
+              modules = [./hosts/${config-variables.hostname}/home-manager/home.nix];
+            };
           };
-          modules = [./hosts/${config-variables.hostname}/nixos/configuration.nix];
-        };
-        homeConfiguration = home-manager.lib.homeManagerConfiguration {
-          pkgs = nixpkgs.legacyPackages.${config-variables.system};
-          extraSpecialArgs = {inherit inputs outputs config-variables;};
-          modules = [./hosts/${config-variables.hostname}/home-manager/home.nix];
-        };
-      };
 
       zolotiy = configuration {
         # Don't change the original stateVersion, it's used to track the version of the configuration.
@@ -70,6 +113,11 @@
         username = "ivan";
         userDesc = "Ivan Lazar Miljenovic";
         system = "x86_64-linux";
+        # Can be either:
+        # - A string (local path): "code/emacs"
+        # - A flake input reference: inputs.emacs-config
+        # - Not specified at all.
+        emacsConfig = "code/emacs";
       };
     in {
       nixosConfigurations = {
