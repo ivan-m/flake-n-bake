@@ -168,16 +168,18 @@
       };
     };
 
-    printers = {
-      ensurePrinters = [
-      ];
-    };
+    # Usage of cups-browsed seems to detect the printer well enough.
+    # printers = {
+    #   ensurePrinters = [
+    #   ];
+    # };
 
+    # Seems to detect the scanner well enough automatically.
     sane = {
       enable = true;
-      # brscan4 = {
-      #   enable = true;
-      # };
+      brscan4 = {
+        enable = true;
+      };
     };
   };
 
@@ -351,6 +353,13 @@
       enable = false; # also by DE?
     };
 
+    # Printer detection
+    avahi = {
+      enable = true;
+      nssmdns4 = true;
+      openFirewall = true;
+    };
+
     ayatana-indicators = {
       enable = true;
     };
@@ -395,11 +404,11 @@
       enable = true;
     };
 
-    openssh = {
+    libinput = {
       enable = true;
     };
 
-    printing = {
+    openssh = {
       enable = true;
     };
 
@@ -423,8 +432,15 @@
       };
     };
 
-    libinput = {
+    printing = {
       enable = true;
+      cups-pdf = {
+	enable = true;
+      };
+      # browsed is enabled because avahi is.
+      #
+      # This seems to automatically add the printer, so no need to
+      # explicitly add it here.
     };
 
     thermald = {
@@ -457,6 +473,7 @@
           "networkmanager"
           "input"
           "wheel"
+	  "lpadmin" # printer admin
         ];
         packages = with pkgs; [
           guvcview
