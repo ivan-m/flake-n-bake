@@ -164,7 +164,6 @@
     logitech = {
       wireless = {
         enable = true;
-        enableGraphical = true;
       };
     };
 
@@ -304,6 +303,11 @@
     };
 
     screen = {
+      enable = true;
+    };
+
+    # Logitech UI
+    solaar = {
       enable = true;
     };
 
