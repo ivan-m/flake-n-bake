@@ -53,6 +53,21 @@ let
         else
           # Don't bother with the overlay, as it may require us to build too many things.
           pkgs.emacs-pgtk.pkgs.withPackages extraPackages;
+
+  # Ensure copilot-language-server has the correct LD_LIBRARY_PATH for
+  # libsecret, glib, and glib-networking to avoid KeytarMasterKey
+  # errors.
+  #
+  # However, it doesn't seem to need this, just a useless error and
+  # falling back to file-based auth instead (which is fine).
+
+  # wrappedCopilotServer = pkgs.copilot-language-server.overrideAttrs (oldAttrs: {
+  #   nativeBuildInputs = (oldAttrs.nativeBuildInputs or []) ++ [ pkgs.makeWrapper ];
+  #   postInstall = (oldAttrs.postInstall or "") + ''
+  #     wrapProgram $out/bin/copilot-language-server \
+  #       --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath [ pkgs.libsecret pkgs.glib pkgs.glib-networking ]}"
+  #   '';
+  # });
 in
 {
   nixpkgs.config.allowUnfreePredicate = pkg:
