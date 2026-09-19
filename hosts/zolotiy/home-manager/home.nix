@@ -22,6 +22,7 @@ let
         isImpureMode = emacsConfigIsPath && builtins.pathExists configPath;
 
 	extraPackages = epkgs: with epkgs; [
+    jinx # Has a binary component, not just pure .el so best to install it here.
 	  tree-sitter-langs
 	  treesit-grammars.with-all-grammars
 	  ];
@@ -77,7 +78,7 @@ in
       "steam-original"
       "copilot-language-server"
     ];
-  
+
   programs = {
     home-manager.enable = true;
     command-not-found.enable = false;
@@ -113,7 +114,12 @@ in
     packages = with pkgs; [
       atool
       chromium
+      pandoc
       solaar
+      jq
+      dhall
+
+      nerd-fonts.symbols-only # For Emacs icons
 
       # Additional helpful tools
       copilot-language-server
