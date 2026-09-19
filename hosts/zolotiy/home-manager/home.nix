@@ -34,6 +34,17 @@ in
       enable = true;
       enableBashIntegration = true;
     };
+    bash = {
+      enable = true;
+      shellAliases = {
+        nix-flake-update = "nix flake update --flake /home/ivan/flakes";
+        nix-home-news = "home-manager news --flake /home/ivan/flakes#ivan@zolotiy";
+        nix-update-home = "home-manager switch --flake /home/ivan/flakes#ivan@zolotiy";
+        nix-update-home-build = "home-manager build --flake /home/ivan/flakes#ivan@zolotiy";
+        nix-update-system = "sudo nixos-rebuild switch --flake /home/ivan/flakes#zolotiy";
+        nix-update-system-test = "sudo nixos-rebuild test --flake /home/ivan/flakes#zolotiy";
+      };
+    };
     emacs = mkIf (emacsConfigSource != null) {
       enable = true;
       package = emacsLib.buildEmacsWithPackages {
