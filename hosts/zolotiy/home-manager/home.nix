@@ -17,7 +17,8 @@ let
   };
 in
 {
-  nixpkgs.config.allowUnfreePredicate = pkg:
+  nixpkgs.config.allowUnfreePredicate =
+    pkg:
     builtins.elem (pkgs.lib.getName pkg) [
       "steam"
       "steam-run"
@@ -59,10 +60,13 @@ in
     username = config-variables.username;
     homeDirectory = "/home/${config-variables.username}";
     stateVersion = config-variables.stateVersion;
-    packages = with pkgs; [
-      atool
-      chromium
-      solaar
-    ] ++ emacsLib.defaultEmacsToolingPackages;
+    packages =
+      with pkgs;
+      [
+        atool
+        chromium
+        solaar
+      ]
+      ++ emacsLib.defaultEmacsToolingPackages;
   };
 }

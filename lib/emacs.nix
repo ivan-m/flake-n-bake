@@ -4,12 +4,13 @@
   emacs-overlay,
 }:
 let
-  defaultExtraEmacsPackages = epkgs: with epkgs; [
-    # Has a binary component, not just pure .el so best to install it here.
-    jinx
-    tree-sitter-langs
-    treesit-grammars.with-all-grammars
-  ];
+  defaultExtraEmacsPackages =
+    epkgs: with epkgs; [
+      # Has a binary component, not just pure .el so best to install it here.
+      jinx
+      tree-sitter-langs
+      treesit-grammars.with-all-grammars
+    ];
 
   # Non-Emacs runtime tools commonly expected by the Emacs config.
   # Use this in HM home.packages or flake package lists so binaries are available.
@@ -23,6 +24,7 @@ let
     jq
     dhall
     nerd-fonts.symbols-only # For Emacs icons
+    nixfmt
   ];
 
   # Build an Emacs package using use-package declarations from configPath.
@@ -44,13 +46,14 @@ let
   #
   # Returns:
   # - Emacs derivation suitable for programs.emacs.package or systemPackages.
-  buildEmacsWithPackages = {
-    emacsConfigPath,
-    emacsConfigIsPath ? false,
-    emacsWorkConfigPath ? null,
-    emacsWorkConfigIsPath ? emacsConfigIsPath,
-    extraEmacsPackages ? defaultExtraEmacsPackages,
-  }:
+  buildEmacsWithPackages =
+    {
+      emacsConfigPath,
+      emacsConfigIsPath ? false,
+      emacsWorkConfigPath ? null,
+      emacsWorkConfigIsPath ? emacsConfigIsPath,
+      extraEmacsPackages ? defaultExtraEmacsPackages,
+    }:
     if emacsConfigPath == null then
       throw "buildEmacsWithPackages: `emacsConfigPath` is mandatory and cannot be null."
     else
@@ -67,33 +70,35 @@ let
 
         canUseOverlay = isBasePathVisible && isWorkPathVisible;
       in
-        if canUseOverlay then
-          let
-            pkgsWithOverlay = pkgs.extend emacs-overlay.overlays.default;
+      if canUseOverlay then
+        let
+          pkgsWithOverlay = pkgs.extend emacs-overlay.overlays.default;
 
-            loadDir = dir:
-              if builtins.pathExists dir then
-                let
-                  allFiles = builtins.attrNames (builtins.readDir dir);
-                in
-                  map (f: dir + "/${f}")
-                    (builtins.filter (f: lib.hasSuffix ".el" f) allFiles)
-              else
-                [];
+          loadDir =
+            dir:
+            if builtins.pathExists dir then
+              let
+                allFiles = builtins.attrNames (builtins.readDir dir);
+              in
+              map (f: dir + "/${f}") (builtins.filter (f: lib.hasSuffix ".el" f) allFiles)
+            else
+              [ ];
 
-            allConfigFiles =
-              [ (emacsConfigPath + "/init.el") (emacsConfigPath + "/early-init.el") ]
-              ++ loadDir (emacsConfigPath + "/extras")
-              ++ loadDir resolvedWorkPath;
-          in
-            pkgsWithOverlay.emacsWithPackagesFromUsePackage {
-              config = allConfigFiles;
-              package = pkgsWithOverlay.emacs-pgtk;
-              extraEmacsPackages = extraEmacsPackages;
-            }
-        else
-          # If local paths are not visible in this eval mode, avoid forcing overlay parsing.
-          pkgs.emacs-pgtk.pkgs.withPackages extraEmacsPackages;
+          allConfigFiles = [
+            (emacsConfigPath + "/init.el")
+            (emacsConfigPath + "/early-init.el")
+          ]
+          ++ loadDir (emacsConfigPath + "/extras")
+          ++ loadDir resolvedWorkPath;
+        in
+        pkgsWithOverlay.emacsWithPackagesFromUsePackage {
+          config = allConfigFiles;
+          package = pkgsWithOverlay.emacs-pgtk;
+          extraEmacsPackages = extraEmacsPackages;
+        }
+      else
+        # If local paths are not visible in this eval mode, avoid forcing overlay parsing.
+        pkgs.emacs-pgtk.pkgs.withPackages extraEmacsPackages;
 in
 {
   inherit buildEmacsWithPackages defaultExtraEmacsPackages defaultEmacsToolingPackages;

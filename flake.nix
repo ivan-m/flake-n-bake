@@ -43,7 +43,15 @@
     #   flake = false;  # Just get the files, not a full flake output
     # };
   };
-  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, home-manager, emacs-overlay, ... }:
+  outputs =
+    inputs@{
+      self,
+      nixpkgs,
+      nixpkgs-unstable,
+      home-manager,
+      emacs-overlay,
+      ...
+    }:
     let
       inherit (self) outputs;
 
@@ -62,7 +70,8 @@
       # It's a little disconcerting that we never seem to actually
       # define what the config-variables record data structure
       # actually is...
-      configuration = config-variables:
+      configuration =
+        config-variables:
         let
           # Intelligently determine the Emacs config source and type
           emacsConfigResolved =
@@ -71,39 +80,45 @@
                 cfg = config-variables.emacsConfig;
                 # If it's a string, treat it as a path; otherwise it's a flake input
                 isPath = builtins.isString cfg;
-                source =
-                  if isPath then
-                    cfg
-                  else
-                    cfg;  # Already resolved flake input
+                source = if isPath then cfg else cfg; # Already resolved flake input
               in
-                {
-                  source = source;
-                  isPath = isPath;
-                }
+              {
+                source = source;
+                isPath = isPath;
+              }
             else
               {
                 source = null;
                 isPath = false;
               };
         in
-          {
-            nixosConfiguration = nixpkgs.lib.nixosSystem {
-              specialArgs = {
-                inherit inputs outputs config-variables emacs-overlay;
-              };
-              modules = [./hosts/${config-variables.hostname}/nixos/configuration.nix];
+        {
+          nixosConfiguration = nixpkgs.lib.nixosSystem {
+            specialArgs = {
+              inherit
+                inputs
+                outputs
+                config-variables
+                emacs-overlay
+                ;
             };
-            homeConfiguration = home-manager.lib.homeManagerConfiguration {
-              pkgs = nixpkgs.legacyPackages.${config-variables.system};
-              extraSpecialArgs = {
-                inherit inputs outputs config-variables emacs-overlay;
-                emacsConfigSource = emacsConfigResolved.source;
-                emacsConfigIsPath = emacsConfigResolved.isPath;
-              };
-              modules = [./hosts/${config-variables.hostname}/home-manager/home.nix];
-            };
+            modules = [ ./hosts/${config-variables.hostname}/nixos/configuration.nix ];
           };
+          homeConfiguration = home-manager.lib.homeManagerConfiguration {
+            pkgs = nixpkgs.legacyPackages.${config-variables.system};
+            extraSpecialArgs = {
+              inherit
+                inputs
+                outputs
+                config-variables
+                emacs-overlay
+                ;
+              emacsConfigSource = emacsConfigResolved.source;
+              emacsConfigIsPath = emacsConfigResolved.isPath;
+            };
+            modules = [ ./hosts/${config-variables.hostname}/home-manager/home.nix ];
+          };
+        };
 
       zolotiy = configuration {
         # Don't change the original stateVersion, it's used to track the version of the configuration.
@@ -119,7 +134,8 @@
         # - Not specified at all.
         emacsConfig = "code/emacs";
       };
-    in {
+    in
+    {
       nixosConfigurations = {
         zolotiy = zolotiy.nixosConfiguration;
       };
@@ -128,5 +144,20 @@
         # Can we somehow get this to be based upon the username?
         "ivan@zolotiy" = zolotiy.homeConfiguration;
       };
+
+      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
+
+      # Optional but handy: direct package exposure
+      packages = forAllSystems (system: {
+        nixfmt = nixpkgs.legacyPackages.${system}.nixfmt;
+      });
+
+      # Optional: runnable app target
+      apps = forAllSystems (system: {
+        nixfmt = {
+          type = "app";
+          program = "${self.packages.${system}.nixfmt}/bin/nixfmt";
+        };
+      });
     };
 }

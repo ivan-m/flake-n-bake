@@ -2,24 +2,32 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{ config, lib, pkgs, config-variables, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  config-variables,
+  ...
+}:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-    ];
+  imports = [
+    # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+  ];
 
   nix = {
     settings = {
-      experimental-features = [ "nix-command" "flakes" ];
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
     };
   };
 
   # Use the systemd-boot EFI boot loader.
   boot = {
     kernelPackages = pkgs.linuxPackages_latest;
-
 
     # kernelPackages =  pkgs.linuxPackagesFor (pkgs.linux_6_17.override {
     #   argsOverride = rec {
@@ -45,7 +53,7 @@
 
     initrd = {
       enable = true;
-     # verbose = false;
+      # verbose = false;
       systemd = {
         enable = true;
       };
@@ -90,11 +98,11 @@
     # Enable "Silent boot"
     consoleLogLevel = 3;
     kernelParams = [
-     "quiet"
-     "splash"
-     "boot.shell_on_fail"
-     "udev.log_priority=3"
-     "rd.systemd.show_status=auto"
+      "quiet"
+      "splash"
+      "boot.shell_on_fail"
+      "udev.log_priority=3"
+      "rd.systemd.show_status=auto"
     ];
     # Hide the OS choice for bootloaders.
     # It's still possible to open the bootloader list by pressing any key
@@ -201,7 +209,6 @@
       };
     };
   };
-
 
   # Select internationalisation properties.
   # i18n.defaultLocale = "en_US.UTF-8";
@@ -444,7 +451,7 @@
     printing = {
       enable = true;
       cups-pdf = {
-	enable = true;
+        enable = true;
       };
       # browsed is enabled because avahi is.
       #
@@ -482,7 +489,7 @@
           "networkmanager"
           "input"
           "wheel"
-	  "lpadmin" # printer admin
+          "lpadmin" # printer admin
         ];
         packages = with pkgs; [
           guvcview
