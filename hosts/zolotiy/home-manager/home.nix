@@ -12,63 +12,9 @@
 }:
 let
   mkIf = lib.mkIf;
-
-  buildEmacsWithPackages = configPath:
-    if configPath == null then
-      null
-    else
-      let
-        # If we can read the local config directory then we must be running with --impure
-        isImpureMode = emacsConfigIsPath && builtins.pathExists configPath;
-
-	extraPackages = epkgs: with epkgs; [
-    jinx # Has a binary component, not just pure .el so best to install it here.
-	  tree-sitter-langs
-	  treesit-grammars.with-all-grammars
-	  ];
-      in
-        if !emacsConfigIsPath || isImpureMode then
-          let
-            pkgsWithOverlay = pkgs.extend emacs-overlay.overlays.default;
-
-            loadDir = dir:
-              if builtins.pathExists dir then
-                let
-                  allFiles = builtins.attrNames (builtins.readDir dir);
-                in
-                  map (f: dir + "/${f}")
-                    (builtins.filter (f: lib.hasSuffix ".el" f) allFiles)
-              else
-                [];
-
-            allConfigFiles =
-              [ (configPath + "/init.el") (configPath + "/early-init.el") ] ++
-              lib.concatMap (dir: loadDir (configPath + "/${dir}"))
-                [ "extras" "work" ];
-          in
-            pkgsWithOverlay.emacsWithPackagesFromUsePackage {
-              config = allConfigFiles;
-              package = pkgsWithOverlay.emacs-pgtk;
-	      extraEmacsPackages = extraPackages;
-            }
-        else
-          # Don't bother with the overlay, as it may require us to build too many things.
-          pkgs.emacs-pgtk.pkgs.withPackages extraPackages;
-
-  # Ensure copilot-language-server has the correct LD_LIBRARY_PATH for
-  # libsecret, glib, and glib-networking to avoid KeytarMasterKey
-  # errors.
-  #
-  # However, it doesn't seem to need this, just a useless error and
-  # falling back to file-based auth instead (which is fine).
-
-  # wrappedCopilotServer = pkgs.copilot-language-server.overrideAttrs (oldAttrs: {
-  #   nativeBuildInputs = (oldAttrs.nativeBuildInputs or []) ++ [ pkgs.makeWrapper ];
-  #   postInstall = (oldAttrs.postInstall or "") + ''
-  #     wrapProgram $out/bin/copilot-language-server \
-  #       --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath [ pkgs.libsecret pkgs.glib pkgs.glib-networking ]}"
-  #   '';
-  # });
+  emacsLib = import ../../../lib/emacs.nix {
+    inherit lib pkgs emacs-overlay;
+  };
 in
 {
   nixpkgs.config.allowUnfreePredicate = pkg:
@@ -89,12 +35,14 @@ in
     };
     emacs = mkIf (emacsConfigSource != null) {
       enable = true;
-      package = buildEmacsWithPackages (
-        if emacsConfigIsPath then
-          "${config.home.homeDirectory}/${emacsConfigSource}"
-        else
-          emacsConfigSource
-      );
+      package = emacsLib.buildEmacsWithPackages {
+        emacsConfigPath =
+          if emacsConfigIsPath then
+            "${config.home.homeDirectory}/${emacsConfigSource}"
+          else
+            emacsConfigSource;
+        inherit emacsConfigIsPath;
+      };
     };
   };
 
@@ -114,19 +62,7 @@ in
     packages = with pkgs; [
       atool
       chromium
-      pandoc
       solaar
-      jq
-      dhall
-
-      nerd-fonts.symbols-only # For Emacs icons
-
-      # Additional helpful tools
-      copilot-language-server
-      nodejs # For copilot-language-server
-      git # probably already have
-      ripgrep
-      fd
-    ];
+    ] ++ emacsLib.defaultEmacsToolingPackages;
   };
 }
