@@ -15,6 +15,16 @@ let
   emacsLib = import ../../../lib/emacs.nix {
     inherit lib pkgs emacs-overlay;
   };
+
+  nixShellAliases = import ../../../lib/nix-bash-aliases.nix {
+    inherit
+      lib
+      inputs
+      config-variables
+      ;
+    includeSystemCommands = true;
+    includeHomeManagerCommands = true;
+  };
 in
 {
   nixpkgs.config.allowUnfreePredicate =
@@ -36,13 +46,8 @@ in
     };
     bash = {
       enable = true;
-      shellAliases = {
-        nix-flake-update = "nix flake update --flake /home/ivan/flakes";
-        nix-home-news = "home-manager news --flake /home/ivan/flakes#ivan@zolotiy";
-        nix-update-home = "home-manager switch --flake /home/ivan/flakes#ivan@zolotiy";
-        nix-update-home-build = "home-manager build --flake /home/ivan/flakes#ivan@zolotiy";
-        nix-update-system = "sudo nixos-rebuild switch --flake /home/ivan/flakes#zolotiy";
-        nix-update-system-test = "sudo nixos-rebuild test --flake /home/ivan/flakes#zolotiy";
+      shellAliases = nixShellAliases // {
+        # Add any additional shell aliases here
       };
     };
     emacs = mkIf (emacsConfigSource != null) {

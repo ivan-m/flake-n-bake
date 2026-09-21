@@ -128,6 +128,8 @@
         username = "ivan";
         userDesc = "Ivan Lazar Miljenovic";
         system = "x86_64-linux";
+        # This is the path to the root of the flake repository, relative to the home directory.
+        repoRoot = "code/flakes";
         # Can be either:
         # - A string (local path): "code/emacs"
         # - A flake input reference: inputs.emacs-config
