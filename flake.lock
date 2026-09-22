@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "emacs-config": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1790054675,
+        "narHash": "sha256-UAGr0rVRIM1e3sn5cyZ2MP8TLyuk+9OKxieDM/infwU=",
+        "owner": "ivan-m",
+        "repo": "emacs-regolith",
+        "rev": "a0d7f938b8e83a8d4faf599c66904a085ade1965",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ivan-m",
+        "repo": "emacs-regolith",
+        "type": "github"
+      }
+    },
     "emacs-overlay": {
       "inputs": {
         "nixpkgs": [
@@ -77,6 +93,7 @@
     },
     "root": {
       "inputs": {
+        "emacs-config": "emacs-config",
         "emacs-overlay": "emacs-overlay",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",

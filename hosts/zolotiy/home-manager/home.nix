@@ -69,6 +69,16 @@ in
       enable = true;
       shellAliases = nixShellAliases // {
         # Add any additional shell aliases here
+
+        # TODO: work out how to just do a "build and run" approach
+        # here to test it rather than requiring switching the whole
+        # home-manager configuration. Maybe a `home-manager build`
+        # with a `--impure` override-input for the emacs config path?
+        hm-emacs-local = ''
+            home-manager switch \
+          --flake "''${HOME}/${config-variables.repoRoot}#${config-variables.username}@${config-variables.hostId}" \
+          --override-input emacs-config "path:''${HOME}/code/emacs"
+        '';
       };
     };
     emacs = mkIf (emacsConfig != null) {

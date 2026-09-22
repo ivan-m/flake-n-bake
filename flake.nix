@@ -37,11 +37,10 @@
       };
     };
 
-    # Optional Emacs config flake input (can be overridden per system)
-    # emacs-config = {
-    #   url = "github:yourusername/emacs-config";
-    #   flake = false;  # Just get the files, not a full flake output
-    # };
+    emacs-config = {
+      url = "github:ivan-m/emacs-regolith";
+      flake = false; # Just get the files, not a full flake output
+    };
   };
   outputs =
     inputs@{
@@ -142,7 +141,7 @@
           # - A string: "code/emacs"
           # - A flake input: inputs.emacs-config
           # - Omitted entirely.
-          emacsConfig = "code/emacs";
+          emacsConfig = inputs.emacs-config;
 
           # Optional. If omitted, lib/emacs.nix uses:
           # ${emacsConfig}/work
@@ -219,6 +218,9 @@
         nixfmt = {
           type = "app";
           program = "${self.packages.${system}.nixfmt}/bin/nixfmt";
+          meta = {
+            description = "Format Nix files with nixfmt";
+          };
         };
       });
     };

@@ -90,9 +90,17 @@ let
           ]
           ++ loadDir (emacsConfigPath + "/extras")
           ++ loadDir resolvedWorkPath;
+
+          # Combine all config files into a single file; the Emacs
+          # overlay look for all use-package declarations in the
+          # combined file (so we don't have to worry about relative
+          # imports).
+          combinedConfig = pkgs.writeText "emacs-config.el" (
+            builtins.concatStringsSep "\n\n" (map builtins.readFile allConfigFiles)
+          );
         in
         pkgsWithOverlay.emacsWithPackagesFromUsePackage {
-          config = allConfigFiles;
+          config = combinedConfig;
           package = pkgsWithOverlay.emacs-pgtk;
           extraEmacsPackages = extraEmacsPackages;
         }
