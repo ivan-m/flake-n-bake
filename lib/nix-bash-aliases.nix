@@ -4,16 +4,17 @@
   config-variables,
   includeSystemCommands ? true,
   includeHomeManagerCommands ? true,
+  includeProfileCommands ? false,
 }:
 let
-  hostName = config-variables.hostname;
+  hostId = config-variables.hostId;
   userName = config-variables.username;
   # Uses $HOME evaluated at runtime in bash when the aliases are
   # executed, since Nix can't derive it at build time.
   flakeRoot = "\${HOME}/${config-variables.repoRoot}";
 
-  hmTarget = "${userName}@${hostName}";
-  nixosTarget = hostName;
+  hmTarget = "${userName}@${hostId}";
+  nixosTarget = hostId;
 in
 assert includeSystemCommands || includeHomeManagerCommands;
 {
@@ -33,4 +34,12 @@ assert includeSystemCommands || includeHomeManagerCommands;
   nix-system-test = "sudo nixos-rebuild test --flake ${flakeRoot}#${nixosTarget}";
   nix-system-build = "sudo nixos-rebuild build --flake ${flakeRoot}#${nixosTarget}";
   nix-system-boot = "sudo nixos-rebuild boot --flake ${flakeRoot}#${nixosTarget}";
+}
+// lib.optionalAttrs includeProfileCommands {
+  # This assumes single-user install or similar that we don't need to sudo for. This will need to be adjusted for a multi-user install.
+  nix-profile-install = "nix profile install --flake \"${flakeRoot}#${hostId}\"";
+
+  nix-profile-list = "nix profile list";
+
+  nix-profile-upgrade = "nix profile upgrade --all";
 }

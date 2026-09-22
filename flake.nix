@@ -91,68 +91,116 @@
                 source = null;
                 isPath = false;
               };
+          commonSpecialArgs = {
+            inherit
+              inputs
+              outputs
+              config-variables
+              emacs-overlay
+              ;
+
+            emacsConfigSource = emacsConfigResolved.source;
+            emacsConfigIsPath = emacsConfigResolved.isPath;
+          };
+
+          pkgs = nixpkgs.legacyPackages.${config-variables.system};
         in
         {
           nixosConfiguration = nixpkgs.lib.nixosSystem {
-            specialArgs = {
-              inherit
-                inputs
-                outputs
-                config-variables
-                emacs-overlay
-                ;
-            };
-            modules = [ ./hosts/${config-variables.hostname}/nixos/configuration.nix ];
+            specialArgs = commonSpecialArgs;
+            modules = [ ./hosts/${config-variables.hostId}/nixos/configuration.nix ];
           };
           homeConfiguration = home-manager.lib.homeManagerConfiguration {
-            pkgs = nixpkgs.legacyPackages.${config-variables.system};
-            extraSpecialArgs = {
-              inherit
-                inputs
-                outputs
-                config-variables
-                emacs-overlay
-                ;
-              emacsConfigSource = emacsConfigResolved.source;
-              emacsConfigIsPath = emacsConfigResolved.isPath;
-            };
-            modules = [ ./hosts/${config-variables.hostname}/home-manager/home.nix ];
+            inherit pkgs;
+            extraSpecialArgs = commonSpecialArgs;
+            modules = [ ./hosts/${config-variables.hostId}/home-manager/home.nix ];
           };
+          standaloneConfiguration = import ./hosts/${config-variables.hostId}/standalone/configuration.nix (
+            commonSpecialArgs
+            // {
+              inherit pkgs;
+            }
+          );
         };
 
-      zolotiy = configuration {
-        # Don't change the original stateVersion, it's used to track the version of the configuration.
-        stateVersion = "25.05";
-        # Would be cool if we could get some kind of self-reflection going on here to pick this up from the variable name...
-        hostname = "zolotiy";
-        username = "ivan";
-        userDesc = "Ivan Lazar Miljenovic";
-        system = "x86_64-linux";
-        # This is the path to the root of the flake repository, relative to the home directory.
-        repoRoot = "code/flakes";
-        # Can be either:
-        # - A string (local path): "code/emacs"
-        # - A flake input reference: inputs.emacs-config
-        # - Not specified at all.
-        emacsConfig = "code/emacs";
-      };
-    in
-    {
-      nixosConfigurations = {
-        zolotiy = zolotiy.nixosConfiguration;
+      hostDefinitions = {
+        zolotiy = {
+          # Don't change the original stateVersion; it tracks the
+          # version of the configuration.
+          stateVersion = "25.05";
+
+          username = "ivan";
+          userDesc = "Ivan Lazar Miljenovic";
+          system = "x86_64-linux";
+
+          # Path to the root of the flake repository, relative to $HOME.
+          repoRoot = "code/flakes";
+
+          # Can be either:
+          # - A string: "code/emacs"
+          # - A flake input: inputs.emacs-config
+          # - Omitted entirely.
+          emacsConfig = "code/emacs";
+        };
       };
 
-      homeConfigurations = {
-        # Can we somehow get this to be based upon the username?
-        "ivan@zolotiy" = zolotiy.homeConfiguration;
-      };
+      nixosHosts = [
+        "zolotiy"
+      ];
+
+      homeHosts = [
+        "zolotiy"
+      ];
+
+      # These are dedicated package derivation specifications for use
+      # in standalone single-user Nix installs.
+      standaloneHosts = [
+        # "laptop"
+      ];
+
+      hostConfig =
+        hostId:
+        hostDefinitions.${hostId}
+        // {
+          inherit hostId;
+        };
+
+      mkConfiguration = hostId: configuration (hostConfig hostId);
+
+      mkHomeConfigurationName = hostId: "${hostDefinitions.${hostId}.username}@${hostId}";
+    in
+    {
+
+      nixosConfigurations = nixpkgs.lib.genAttrs nixosHosts (
+        hostId: (mkConfiguration hostId).nixosConfiguration
+      );
+
+      homeConfigurations = builtins.listToAttrs (
+        map (hostId: {
+          name = mkHomeConfigurationName hostId;
+          value = (mkConfiguration hostId).homeConfiguration;
+        }) homeHosts
+      );
 
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
 
-      # Optional but handy: direct package exposure
-      packages = forAllSystems (system: {
-        nixfmt = nixpkgs.legacyPackages.${system}.nixfmt;
-      });
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+
+          standalonePackages = builtins.listToAttrs (
+            map (hostId: {
+              name = hostId;
+              value = (mkConfiguration hostId).standaloneConfiguration;
+            }) (builtins.filter (hostId: hostDefinitions.${hostId}.system == system) standaloneHosts)
+          );
+        in
+        {
+          nixfmt = pkgs.nixfmt;
+        }
+        // standalonePackages
+      );
 
       # Optional: runnable app target
       apps = forAllSystems (system: {

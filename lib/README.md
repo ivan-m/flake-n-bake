@@ -170,11 +170,13 @@ there may be no meaningful local checkout.
 
 ### Parameters
 
-- `config-variables`: attribute set containing at least:
-  - `username`
-  - `hostname`
+- `config-variables`: attribute set containing:
+  - `hostId`
+  - `repoRoot`
+  - `username` when Home Manager commands are enabled
 - `includeSystemCommands` (default: `true`)
 - `includeHomeManagerCommands` (default: `true`)
+- `includeProfileCommands` (default: `false`)
 
 At least one of `includeSystemCommands` or `includeHomeManagerCommands` must be
 `true`.
@@ -182,18 +184,27 @@ At least one of `includeSystemCommands` or `includeHomeManagerCommands` must be
 ### Aliases
 
 Always included:
+
 - `nix-flake-update`
 
-Home Manager aliases (when enabled):
+Home Manager aliases, when enabled:
+
 - `nix-home-news`
 - `nix-home-switch`
 - `nix-home-build`
 
-NixOS aliases (when enabled):
+NixOS aliases, when enabled:
+
 - `nix-system-switch`
 - `nix-system-test`
 - `nix-system-build`
 - `nix-system-boot`
+
+Nix profile aliases, when enabled:
+
+- `nix-profile-install`
+- `nix-profile-list`
+- `nix-profile-upgrade`
 
 ## `render-bash-aliases.nix`
 
@@ -239,38 +250,55 @@ alias ll='ls -l'
 ### Example using `nix-bash-aliases.nix`
 
 ```nix
-let
-  lib = import <nixpkgs/lib>;
-  flake = builtins.getFlake (toString ./.);
+# hosts/$hostId/standalone/configuration.nix
+{
+  pkgs,
+  inputs,
+  config-variables,
+  ...
+}:
 
-  aliases = import ./lib/nix-bash-aliases.nix {
-    inherit lib;
-    inputs = flake.inputs // { self = flake; };
-    config-variables = {
-      username = "ivan";
-      hostname = "zolotiy";
-      repoRoot = "/home/ivan/flakes";
-    };
-    includeSystemCommands = true;
+let
+  lib = pkgs.lib;
+
+  aliases = import "${inputs.self.outPath}/lib/nix-bash-aliases.nix" {
+    inherit
+      lib
+      inputs
+      config-variables
+      ;
+
+    includeSystemCommands = false;
     includeHomeManagerCommands = false;
+    includeProfileCommands = true;
   };
 
-  renderShellAliases = import ./lib/render-bash-aliases.nix;
+  renderShellAliases =
+    import "${inputs.self.outPath}/lib/render-bash-aliases.nix";
+
   aliasesFile = renderShellAliases {
-    pkgs = nixpkgs.legacyPackages.${system};
-    aliases = aliases // {
-      cfg = "cd \"${config-variables.repoRoot}\"";
-    };
+    inherit pkgs aliases;
+
     fileName = "generated-aliases.sh";
   };
+
+  aliasesPackage = pkgs.runCommand "bash-aliases-${config-variables.hostId}" { } ''
+    mkdir -p "$out/share"
+    cp "${aliasesFile}" "$out/share/generated-aliases.sh"
+  '';
 in
-# Create a derivation whose output contains the generated Bash script,
-# so it can be installed into the user profile under a stable path and
-# sourced from ~/.bashrc.
-pkgs.runCommand "bash-aliases" { } ''
-  mkdir -p $out/share
-  cp ${aliasesFile} $out/share/generated-aliases.sh
-''
+pkgs.buildEnv {
+  name = config-variables.hostId;
+
+  paths = [
+    aliasesPackage
+
+    pkgs.fd
+    pkgs.jq
+    pkgs.ripgrep
+    pkgs.tmux
+  ];
+}
 ```
 
 ### `.bashrc` integration

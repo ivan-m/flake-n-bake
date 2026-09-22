@@ -223,7 +223,7 @@
   };
 
   networking = {
-    hostName = config-variables.hostname;
+    hostName = config-variables.hostId;
 
     enableIPv6 = true;
 
