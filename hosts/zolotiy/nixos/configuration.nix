@@ -163,6 +163,12 @@
       platform = "ipu6epmtl"; # Actually for Meteor Lake, no Lunar Lake option as yet.
     };
 
+    # Required webcam support; still doesn't seem to be fully working.
+    ipu7 = {
+      enable = true;
+      platform = "ipu7x"; # Lunar Lake, see `dmesg | grep -i ipu7 | grep Device`
+    };
+
     # seems to require using the nixos-hardware repo, but it's already working so no need?
     # intelgpu = {
     #   driver = "xe";
@@ -527,6 +533,7 @@
 
   nixpkgs = {
     config = {
+      # Bring in whatever packages we need for hardware support, even if they are unfree.
       allowUnfree = true;
     };
   };
