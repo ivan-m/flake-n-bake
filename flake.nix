@@ -73,34 +73,34 @@
       configuration =
         config-variables:
         let
-          # Intelligently determine the Emacs config source and type
-          emacsConfigResolved =
-            if config-variables ? emacsConfig then
-              let
-                cfg = config-variables.emacsConfig;
-                # If it's a string, treat it as a path; otherwise it's a flake input
-                isPath = builtins.isString cfg;
-                source = if isPath then cfg else cfg; # Already resolved flake input
-              in
-              {
-                source = source;
-                isPath = isPath;
-              }
+          resolveEmacsConfig =
+            configName:
+            if !(builtins.hasAttr configName config-variables) then
+              null
             else
-              {
-                source = null;
-                isPath = false;
-              };
+              let
+                source = builtins.getAttr configName config-variables;
+              in
+              if source == null then
+                null
+              else
+                {
+                  inherit source;
+                  isPath = builtins.isString source;
+                };
+
+          emacsConfig = resolveEmacsConfig "emacsConfig";
+          emacsWorkConfig = resolveEmacsConfig "emacsWorkConfig";
+
           commonSpecialArgs = {
             inherit
               inputs
               outputs
               config-variables
               emacs-overlay
+              emacsConfig
+              emacsWorkConfig
               ;
-
-            emacsConfigSource = emacsConfigResolved.source;
-            emacsConfigIsPath = emacsConfigResolved.isPath;
           };
 
           pkgs = nixpkgs.legacyPackages.${config-variables.system};
@@ -110,11 +110,13 @@
             specialArgs = commonSpecialArgs;
             modules = [ ./hosts/${config-variables.hostId}/nixos/configuration.nix ];
           };
+
           homeConfiguration = home-manager.lib.homeManagerConfiguration {
             inherit pkgs;
             extraSpecialArgs = commonSpecialArgs;
             modules = [ ./hosts/${config-variables.hostId}/home-manager/home.nix ];
           };
+
           standaloneConfiguration = import ./hosts/${config-variables.hostId}/standalone/configuration.nix (
             commonSpecialArgs
             // {
@@ -141,6 +143,16 @@
           # - A flake input: inputs.emacs-config
           # - Omitted entirely.
           emacsConfig = "code/emacs";
+
+          # Optional. If omitted, lib/emacs.nix uses:
+          # ${emacsConfig}/work
+          #
+          # Can be either:
+          # - A string: "code/emacs-private"
+          # - A flake input: inputs.emacs-work-config
+          # - Omitted entirely.
+          #
+          # emacsWorkConfig = "code/emacs-private";
         };
       };
 

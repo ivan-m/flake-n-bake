@@ -6,14 +6,35 @@
   pkgs,
   config-variables,
   emacs-overlay,
-  emacsConfigSource,
-  emacsConfigIsPath,
+  emacsConfig,
+  emacsWorkConfig,
   ...
 }:
 let
   mkIf = lib.mkIf;
   emacsLib = import ../../../lib/emacs.nix {
     inherit lib pkgs emacs-overlay;
+  };
+
+  resolveEmacsConfigPath =
+    resolvedConfig:
+    if resolvedConfig == null then
+      null
+    else if resolvedConfig.isPath then
+      "${config.home.homeDirectory}/${resolvedConfig.source}"
+    else
+      resolvedConfig.source;
+
+  emacsConfigPath = resolveEmacsConfigPath emacsConfig;
+  emacsWorkConfigPath = resolveEmacsConfigPath emacsWorkConfig;
+
+  emacsPackageArguments = {
+    emacsConfigPath = emacsConfigPath;
+    emacsConfigIsPath = emacsConfig.isPath;
+  }
+  // lib.optionalAttrs (emacsWorkConfig != null) {
+    emacsWorkConfigPath = emacsWorkConfigPath;
+    emacsWorkConfigIsPath = emacsWorkConfig.isPath;
   };
 
   nixShellAliases = import ../../../lib/nix-bash-aliases.nix {
@@ -50,26 +71,30 @@ in
         # Add any additional shell aliases here
       };
     };
-    emacs = mkIf (emacsConfigSource != null) {
+    emacs = mkIf (emacsConfig != null) {
       enable = true;
-      package = emacsLib.buildEmacsWithPackages {
-        emacsConfigPath =
-          if emacsConfigIsPath then
-            "${config.home.homeDirectory}/${emacsConfigSource}"
-          else
-            emacsConfigSource;
-        inherit emacsConfigIsPath;
-      };
+      package = emacsLib.buildEmacsWithPackages emacsPackageArguments;
     };
   };
 
   # Instead of ~/.emacs.d
-  xdg.configFile."emacs" = mkIf (emacsConfigSource != null) {
+  xdg.configFile."emacs" = mkIf (emacsConfig != null) {
     source =
-      if emacsConfigIsPath then
-        config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/${emacsConfigSource}"
+      if emacsConfig.isPath then
+        config.lib.file.mkOutOfStoreSymlink emacsConfigPath
       else
-        emacsConfigSource;
+        emacsConfig.source;
+  };
+
+  # When work configuration is supplied separately, expose it below the
+  # Emacs configuration directory at runtime as well as during packaging.
+  xdg.configFile."emacs/work" = mkIf (emacsWorkConfig != null) {
+    source =
+      if emacsWorkConfig.isPath then
+        config.lib.file.mkOutOfStoreSymlink emacsWorkConfigPath
+      else
+        emacsWorkConfig.source;
+    recursive = true;
   };
 
   home = {
