@@ -16,7 +16,7 @@ let
   hmTarget = "${userName}@${hostId}";
   nixosTarget = hostId;
 in
-assert includeSystemCommands || includeHomeManagerCommands;
+assert includeSystemCommands || includeHomeManagerCommands || includeProfileCommands;
 {
   # Assumption:
   # These commands are intended for a machine managed from a checked-out local
@@ -37,7 +37,7 @@ assert includeSystemCommands || includeHomeManagerCommands;
 }
 // lib.optionalAttrs includeProfileCommands {
   # This assumes single-user install or similar that we don't need to sudo for. This will need to be adjusted for a multi-user install.
-  nix-profile-install = "nix profile install --flake \"${flakeRoot}#${hostId}\"";
+  nix-profile-install = "nix profile add \"${flakeRoot}#${hostId}\"";
 
   nix-profile-list = "nix profile list";
 
