@@ -22,6 +22,10 @@
         "nix-command"
         "flakes"
       ];
+      trusted-users = [
+        "root"
+        "${config-variables.username}"
+      ];
     };
   };
 

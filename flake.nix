@@ -42,6 +42,21 @@
       flake = false; # Just get the files, not a full flake output
     };
   };
+
+  # Use the Nix community Cachix cache for faster builds. This is
+  # especially useful for Emacs packages, which can take a long time
+  # to build.
+  #
+  # This is used for build-time of any evaluation of this flake.
+  #
+  # May need to keep in sync with `sharedNixSettings` below.
+  nixConfig = {
+    extra-substituters = [ "https://nix-community.cachix.org" ];
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+  };
+
   outputs =
     inputs@{
       self,
@@ -102,18 +117,37 @@
               ;
           };
 
+          # This allows re-use of this cache for any additional flake builds
+          # within those systems.
+          sharedNixSettings = {
+            nix = {
+              package = nixpkgs.legacyPackages.${config-variables.system}.nix;
+              settings = {
+                extra-substituters = [ "https://nix-community.cachix.org" ];
+                extra-trusted-public-keys = [
+                  "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+                ];
+              };
+            };
+          };
           pkgs = nixpkgs.legacyPackages.${config-variables.system};
         in
         {
           nixosConfiguration = nixpkgs.lib.nixosSystem {
             specialArgs = commonSpecialArgs;
-            modules = [ ./hosts/${config-variables.hostId}/nixos/configuration.nix ];
+            modules = [
+              sharedNixSettings
+              ./hosts/${config-variables.hostId}/nixos/configuration.nix
+            ];
           };
 
           homeConfiguration = home-manager.lib.homeManagerConfiguration {
             inherit pkgs;
             extraSpecialArgs = commonSpecialArgs;
-            modules = [ ./hosts/${config-variables.hostId}/home-manager/home.nix ];
+            modules = [
+              sharedNixSettings
+              ./hosts/${config-variables.hostId}/home-manager/home.nix
+            ];
           };
 
           standaloneConfiguration = import ./hosts/${config-variables.hostId}/standalone/configuration.nix (
