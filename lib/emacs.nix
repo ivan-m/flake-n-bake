@@ -101,7 +101,9 @@ let
         in
         pkgsWithOverlay.emacsWithPackagesFromUsePackage {
           config = combinedConfig;
-          package = pkgsWithOverlay.emacs-pgtk;
+          # Don't try and use our combined mega-file as init.el, just use it for parsing use-package declarations.
+          defaultInitFile = false;
+          package = pkgs.emacs-pgtk; # Use upstream emacs build to avoid rebuilding.
           extraEmacsPackages = extraEmacsPackages;
         }
       else
