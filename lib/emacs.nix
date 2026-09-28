@@ -55,6 +55,7 @@ let
       emacsWorkConfigPath ? null,
       emacsWorkConfigIsPath ? emacsConfigIsPath,
       extraEmacsPackages ? defaultExtraEmacsPackages,
+      emacsBuild ? pkgs.emacs-pgtk,
     }:
     if emacsConfigPath == null then
       throw "buildEmacsWithPackages: `emacsConfigPath` is mandatory and cannot be null."
@@ -105,12 +106,12 @@ let
           config = combinedConfig;
           # Don't try and use our combined mega-file as init.el, just use it for parsing use-package declarations.
           defaultInitFile = false;
-          package = pkgs.emacs-pgtk; # Use upstream emacs build to avoid rebuilding.
+          package = emacsBuild;
           extraEmacsPackages = extraEmacsPackages;
         }
       else
         # If local paths are not visible in this eval mode, avoid forcing overlay parsing.
-        pkgs.emacs-pgtk.pkgs.withPackages extraEmacsPackages;
+        emacsBuild.pkgs.withPackages extraEmacsPackages;
 in
 {
   inherit buildEmacsWithPackages defaultExtraEmacsPackages defaultEmacsToolingPackages;

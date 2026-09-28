@@ -31,6 +31,7 @@ let
   emacsPackageArguments = {
     emacsConfigPath = emacsConfigPath;
     emacsConfigIsPath = emacsConfig.isPath;
+    emacsBuild = pkgs.emacs-pgtk;
   }
   // lib.optionalAttrs (emacsWorkConfig != null) {
     emacsWorkConfigPath = emacsWorkConfigPath;
