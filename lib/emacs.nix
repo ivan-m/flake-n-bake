@@ -25,6 +25,8 @@ let
     dhall
     nerd-fonts.symbols-only # For Emacs icons
     nixfmt
+    hunspell
+    hunspellDicts.en_AU # TODO: make lang configurable?
   ];
 
   # Build an Emacs package using use-package declarations from configPath.
