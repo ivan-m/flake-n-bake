@@ -6,8 +6,6 @@
   pkgs,
   config-variables,
   emacs-overlay,
-  emacsConfig,
-  emacsWorkConfig,
   ...
 }:
 let
@@ -16,26 +14,12 @@ let
     inherit lib pkgs emacs-overlay;
   };
 
-  resolveEmacsConfigPath =
-    resolvedConfig:
-    if resolvedConfig == null then
-      null
-    else if resolvedConfig.isPath then
-      "${config.home.homeDirectory}/${resolvedConfig.source}"
-    else
-      resolvedConfig.source;
-
-  emacsConfigPath = resolveEmacsConfigPath emacsConfig;
-  emacsWorkConfigPath = resolveEmacsConfigPath emacsWorkConfig;
+  emacsConfig = config-variables.emacsConfig or null;
+  emacsWorkConfig = config-variables.emacsWorkConfig or null;
 
   emacsPackageArguments = {
-    emacsConfigPath = emacsConfigPath;
-    emacsConfigIsPath = emacsConfig.isPath;
+    inherit emacsConfig emacsWorkConfig;
     emacsBuild = pkgs.emacs-pgtk;
-  }
-  // lib.optionalAttrs (emacsWorkConfig != null) {
-    emacsWorkConfigPath = emacsWorkConfigPath;
-    emacsWorkConfigIsPath = emacsWorkConfig.isPath;
   };
 
   nixShellAliases = import ../../../lib/nix-bash-aliases.nix {
@@ -90,21 +74,13 @@ in
 
   # Instead of ~/.emacs.d
   xdg.configFile."emacs" = mkIf (emacsConfig != null) {
-    source =
-      if emacsConfig.isPath then
-        config.lib.file.mkOutOfStoreSymlink emacsConfigPath
-      else
-        emacsConfig.source;
+    source = emacsConfig;
   };
 
   # When work configuration is supplied separately, expose it below the
   # Emacs configuration directory at runtime as well as during packaging.
   xdg.configFile."emacs/work" = mkIf (emacsWorkConfig != null) {
-    source =
-      if emacsWorkConfig.isPath then
-        config.lib.file.mkOutOfStoreSymlink emacsWorkConfigPath
-      else
-        emacsWorkConfig.source;
+    source = emacsWorkConfig;
     recursive = true;
   };
 

@@ -87,33 +87,12 @@
       configuration =
         config-variables:
         let
-          resolveEmacsConfig =
-            configName:
-            if !(builtins.hasAttr configName config-variables) then
-              null
-            else
-              let
-                source = builtins.getAttr configName config-variables;
-              in
-              if source == null then
-                null
-              else
-                {
-                  inherit source;
-                  isPath = builtins.isString source;
-                };
-
-          emacsConfig = resolveEmacsConfig "emacsConfig";
-          emacsWorkConfig = resolveEmacsConfig "emacsWorkConfig";
-
           commonSpecialArgs = {
             inherit
               inputs
               outputs
               config-variables
               emacs-overlay
-              emacsConfig
-              emacsWorkConfig
               ;
           };
 
@@ -171,21 +150,10 @@
           # Path to the root of the flake repository, relative to $HOME.
           repoRoot = "code/flakes";
 
-          # Can be either:
-          # - A string: "code/emacs"
-          # - A flake input: inputs.emacs-config
-          # - Omitted entirely.
           emacsConfig = inputs.emacs-config;
 
-          # Optional. If omitted, lib/emacs.nix uses:
-          # ${emacsConfig}/work
-          #
-          # Can be either:
-          # - A string: "code/emacs-private"
-          # - A flake input: inputs.emacs-work-config
-          # - Omitted entirely.
-          #
-          # emacsWorkConfig = "code/emacs-private";
+          # Specified here for reference.
+          # emacsWorkConfig = ???;
         };
       };
 
@@ -247,7 +215,6 @@
         // standalonePackages
       );
 
-      # Optional: runnable app target
       apps = forAllSystems (system: {
         nixfmt = {
           type = "app";

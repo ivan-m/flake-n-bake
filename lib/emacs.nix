@@ -32,86 +32,70 @@ let
   # Build an Emacs package using use-package declarations from configPath.
   #
   # Required args:
-  # - configPath: Absolute path or store path to Emacs config root.
+  # - emacsConfig: Store path to Emacs config root.
   #   Expected files/dirs:
   #   - init.el
   #   - early-init.el
   #   - extras/*.el (optional)
-  #   - work/*.el (optional by default, or from emacsWorkConfigPath)
+  #   - work/*.el (optional by default, or from emacsWorkConfig)
   #
   # Optional args:
-  # - emacsConfigIsPath: true when configPath refers to a local filesystem path
-  #   that may require --impure to inspect during evaluation.
-  # - emacsWorkConfigPath: optional separate path for work config files.
-  #   When null, defaults to "${configPath}/work" (backward compatible).
+  # - emacsWorkConfig: optional separate path for work config files.
+  #   When null, defaults to "${emacsConfig}/work" (backward compatible).
   # - extraEmacsPackages: function (epkgs -> [ ... ]) for extra packages.
+  # - emacsBuild: Emacs derivation to use for building the package. Defaults to pkgs.emacs-pgtk.
   #
   # Returns:
   # - Emacs derivation suitable for programs.emacs.package or systemPackages.
   buildEmacsWithPackages =
     {
-      emacsConfigPath,
-      emacsConfigIsPath ? false,
-      emacsWorkConfigPath ? null,
-      emacsWorkConfigIsPath ? emacsConfigIsPath,
+      emacsConfig,
+      emacsWorkConfig ? null,
       extraEmacsPackages ? defaultExtraEmacsPackages,
       emacsBuild ? pkgs.emacs-pgtk,
     }:
-    if emacsConfigPath == null then
-      throw "buildEmacsWithPackages: `emacsConfigPath` is mandatory and cannot be null."
+    if emacsConfig == null then
+      throw "buildEmacsWithPackages: `emacsConfig` is mandatory and cannot be null."
     else
       let
-        # Base config path visibility in local-path mode.
-        isBasePathVisible = (!emacsConfigIsPath) || builtins.pathExists emacsConfigPath;
-
-        # Work config defaults to emacsConfigPath/work when not explicitly set.
-        resolvedWorkPath =
-          if emacsWorkConfigPath != null then emacsWorkConfigPath else (emacsConfigPath + "/work");
-
-        # Work path visibility depends on its own path-mode flag.
-        isWorkPathVisible = (!emacsWorkConfigIsPath) || builtins.pathExists resolvedWorkPath;
-
-        canUseOverlay = isBasePathVisible && isWorkPathVisible;
+        # Work config defaults to emacsConfig/work when not explicitly set.
+        resolvedWorkPath = if emacsWorkConfig != null then emacsWorkConfig else (emacsConfig + "/work");
       in
-      if canUseOverlay then
-        let
-          pkgsWithOverlay = pkgs.extend emacs-overlay.overlays.default;
+      let
+        pkgsWithOverlay = pkgs.extend emacs-overlay.overlays.default;
 
-          loadDir =
-            dir:
-            if builtins.pathExists dir then
-              let
-                allFiles = builtins.attrNames (builtins.readDir dir);
-              in
-              map (f: dir + "/${f}") (builtins.filter (f: lib.hasSuffix ".el" f) allFiles)
-            else
-              [ ];
+        loadDir =
+          dir:
+          if builtins.pathExists dir then
+            let
+              allFiles = builtins.attrNames (builtins.readDir dir);
+            in
+            map (f: dir + "/${f}") (builtins.filter (f: lib.hasSuffix ".el" f) allFiles)
+          else
+            [ ];
 
-          allConfigFiles = [
-            (emacsConfigPath + "/init.el")
-            (emacsConfigPath + "/early-init.el")
-          ]
-          ++ loadDir (emacsConfigPath + "/extras")
-          ++ loadDir resolvedWorkPath;
+        allConfigFiles = [
+          (emacsConfig + "/init.el")
+          (emacsConfig + "/early-init.el")
+        ]
+        ++ loadDir (emacsConfig + "/extras")
+        ++ loadDir resolvedWorkPath;
 
-          # Combine all config files into a single file; the Emacs
-          # overlay look for all use-package declarations in the
-          # combined file (so we don't have to worry about relative
-          # imports).
-          combinedConfig = pkgs.writeText "emacs-config.el" (
-            builtins.concatStringsSep "\n\n" (map builtins.readFile allConfigFiles)
-          );
-        in
-        pkgsWithOverlay.emacsWithPackagesFromUsePackage {
-          config = combinedConfig;
-          # Don't try and use our combined mega-file as init.el, just use it for parsing use-package declarations.
-          defaultInitFile = false;
-          package = emacsBuild;
-          extraEmacsPackages = extraEmacsPackages;
-        }
-      else
-        # If local paths are not visible in this eval mode, avoid forcing overlay parsing.
-        emacsBuild.pkgs.withPackages extraEmacsPackages;
+        # Combine all config files into a single file; the Emacs
+        # overlay look for all use-package declarations in the
+        # combined file (so we don't have to worry about relative
+        # imports).
+        combinedConfig = pkgs.writeText "emacs-config.el" (
+          builtins.concatStringsSep "\n\n" (map builtins.readFile allConfigFiles)
+        );
+      in
+      pkgsWithOverlay.emacsWithPackagesFromUsePackage {
+        config = combinedConfig;
+        # Don't try and use our combined mega-file as init.el, just use it for parsing use-package declarations.
+        defaultInitFile = false;
+        package = emacsBuild;
+        extraEmacsPackages = extraEmacsPackages;
+      };
 in
 {
   inherit buildEmacsWithPackages defaultExtraEmacsPackages defaultEmacsToolingPackages;

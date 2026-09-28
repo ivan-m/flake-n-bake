@@ -23,53 +23,27 @@ in
 
 ```nix
 emacsLib.buildEmacsWithPackages {
-  configPath = ...;                           # required
-  emacsConfigIsPath = false;                  # optional, default false
-  emacsWorkConfigPath = null;                 # optional, default null
-  emacsWorkConfigIsPath = emacsConfigIsPath;  # optional
-  extraEmacsPackages = epkgs: [ ... ];        # optional
+  emacsConfig = ...;                   # required
+  emacsWorkConfig = null;              # optional, default null
+  extraEmacsPackages = epkgs: [ ... ]; # optional, default defaultExtraEmacsPackages
+  emacsBuild = pkgs.emacs-pgtk;        # optional, default shown
 }
 ```
 
 #### Arguments
 
-- `configPath` (required): main Emacs config root.
+- `emacsConfig` (required): main Emacs config root.
   - Expected: `init.el`, `early-init.el`, optional `extras/*.el`.
-- `emacsConfigIsPath`:
-  - `true` if `configPath` is a local filesystem path string.
-  - `false` if `configPath` is a Nix/store path.
-- `emacsWorkConfigPath`:
-  - Optional separate path for work `*.el` files.
+- `emacsWorkConfig`:
+  - Optional separate path for work `*.el` files.  All such files
+    assumed to be in top-level directory.
   - If `null`, defaults to `${configPath}/work` (backward compatible).
-- `emacsWorkConfigIsPath`:
-  - `true` if `emacsWorkConfigPath` is a local filesystem path string.
-  - `false` if it is a Nix/store path.
-  - Defaults to `emacsConfigIsPath`.
 - `extraEmacsPackages`:
   - Function of shape `epkgs: [ ... ]` for additional Emacs packages.
-
-## Source mode rules (important)
-
-`configPath` and `emacsWorkConfigPath` are independent.
-
-- If a source is a local path string, set the corresponding `*IsPath = true`.
-- If a source is a Nix/store path, set the corresponding `*IsPath = false`.
-- In mixed mode (one local, one store), set both flags explicitly.
-
-Examples:
-
-- Base store path + work store path:
-  - `emacsConfigIsPath = false`
-  - `emacsWorkConfigIsPath = false`
-- Base local path + work local path:
-  - `emacsConfigIsPath = true`
-  - `emacsWorkConfigIsPath = true`
-- Base store path + work local path:
-  - `emacsConfigIsPath = false`
-  - `emacsWorkConfigIsPath = true`
-- Base local path + work store path:
-  - `emacsConfigIsPath = true`
-  - `emacsWorkConfigIsPath = false`
+    Defaults to `defaultExtraEmacsPackages`.
+- `emacsBuild`:
+  - Emacs derivation to use for building the package. Defaults to
+    `pkgs.emacs-pgtk`.
 
 ## Home Manager usage
 
