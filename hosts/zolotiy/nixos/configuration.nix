@@ -456,6 +456,30 @@
       wireplumber = {
         enable = true;
       };
+
+      # Stop PipeWire from suspending idle audio devices (prevents the
+      # crash trigger for Genesys hub)
+      extraConfig = {
+        pipewire = {
+          "99-disable-c922-suspend" = {
+            "monitor.objects" = [
+              {
+                matches = [
+                  {
+                    # Matches the specific hardware product text exposed by the kernel
+                    "device.product.name" = "C922 Pro Stream Webcam";
+                  }
+                ];
+                actions = {
+                  update-props = {
+                    "session.suspend-on-idle" = false;
+                  };
+                };
+              }
+            ];
+          };
+        };
+      };
     };
 
     printing = {
@@ -471,6 +495,14 @@
 
     thermald = {
       enable = true;
+    };
+
+    udev = {
+      # Disable USB Link Power Management & Autosuspend for the
+      # Genesys hub
+      extraRules = ''
+        ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="05e3", ATTR{idProduct}=="0626", ATTR{power/control}="on", ATTR{power/lpm_capable}="0"
+      '';
     };
 
     uvcvideo = {
