@@ -14,11 +14,11 @@ let
     inherit lib pkgs emacs-overlay;
   };
 
-  emacsConfig = config-variables.emacsConfig or null;
-  emacsWorkConfig = config-variables.emacsWorkConfig or null;
+  emacs-config = config-variables.emacs-config;
+  emacs-work-config = config-variables.emacs-work-config;
 
   emacsPackageArguments = {
-    inherit emacsConfig emacsWorkConfig;
+    inherit emacs-config emacs-work-config;
     emacsBuild = pkgs.emacs-pgtk;
   };
 
@@ -66,21 +66,21 @@ in
         '';
       };
     };
-    emacs = mkIf (emacsConfig != null) {
+    emacs = {
       enable = true;
       package = emacsLib.buildEmacsWithPackages emacsPackageArguments;
     };
   };
 
   # Instead of ~/.emacs.d
-  xdg.configFile."emacs" = mkIf (emacsConfig != null) {
-    source = emacsConfig;
+  xdg.configFile."emacs" = {
+    source = emacs-config;
   };
 
   # When work configuration is supplied separately, expose it below the
   # Emacs configuration directory at runtime as well as during packaging.
-  xdg.configFile."emacs/work" = mkIf (emacsWorkConfig != null) {
-    source = emacsWorkConfig;
+  xdg.configFile."emacs/work" = mkIf (!emacsLib.isWorkConfigEmpty emacs-work-config) {
+    source = emacs-work-config;
     recursive = true;
   };
 

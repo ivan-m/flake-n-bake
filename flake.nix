@@ -41,6 +41,16 @@
       url = "github:ivan-m/emacs-regolith";
       flake = false; # Just get the files, not a full flake output
     };
+
+    # Assumed to have all .el files - at least the ones that contain
+    # use-package declarations - in the root of the repo/path.  Should
+    # have at least one such file - either `early-init.el` or
+    # `init.el; to determine if it's being used or not.
+    emacs-work-config = {
+      # Dummy input for the machinery to work; replace when required.
+      url = "path:./empty";
+      flake = false; # Just get the files, not a full flake output
+    };
   };
 
   # Use the Nix community Cachix cache for faster builds. This is
@@ -87,13 +97,17 @@
       configuration =
         config-variables:
         let
+          defaulted-config-variables = config-variables // {
+            emacs-config = inputs.emacs-config;
+            emacs-work-config = inputs.emacs-work-config;
+          };
           commonSpecialArgs = {
             inherit
               inputs
               outputs
-              config-variables
               emacs-overlay
               ;
+            config-variables = defaulted-config-variables;
           };
 
           # This allows re-use of this cache for any additional flake builds
@@ -148,12 +162,9 @@
           system = "x86_64-linux";
 
           # Path to the root of the flake repository, relative to $HOME.
+          #
+          # Used to generate the flake path for home-manager and nixos-rebuild commands.
           repoRoot = "code/flakes";
-
-          emacsConfig = inputs.emacs-config;
-
-          # Specified here for reference.
-          # emacsWorkConfig = ???;
         };
       };
 

@@ -2,130 +2,131 @@
 
 ## `emacs.nix`
 
-Exports:
+Builds an Emacs derivation from a source tree of Emacs Lisp config files, with support for both a shared config and an optional separate work config.
+
+### Purpose
+
+This helper is intended for Home Manager and NixOS configuration where Emacs is built from a checked-in config directory instead of a monolithic package definition.
+
+It:
+
+- loads `init.el` and `early-init.el` from the main Emacs config root
+- loads any `extras/*.el` files from the same root
+- optionally loads `work/*.el` files from a separate work config path
+- concatenates them into one temporary file
+- invokes `emacsWithPackagesFromUsePackage` so `use-package` declarations are discovered and the required packages are installed automatically
+
+This keeps your Emacs config in a normal directory layout while still letting Nix manage package installation.
+
+### Inputs
+
+- `emacs-config`: path to the main Emacs config root
+  - expected files:
+    - `init.el`
+    - `early-init.el`
+    - `extras/*.el` (optional)
+- `emacs-work-config`: path to a work-specific config
+  - optional
+  - if empty, or if it contains no `.el` files, it is skipped
+- `extraEmacsPackages` (default: `defaultExtraEmacsPackages`): a function such as:
+  - `epkgs: [ ... ]`
+- `emacsBuild` (default: `pkgs.emacs-pgtk`): the Emacs derivation to use
+
+### Provided values
+
+The module exports:
 
 - `buildEmacsWithPackages`
 - `defaultExtraEmacsPackages`
-- `defaultEmacsToolingPackages`: non-Emacs binaries expected by config
-  intended for HM `home.packages`, system packages, or dev shells.
+- `defaultEmacsToolingPackages`
+- `isWorkConfigEmpty`
 
-### Import
+### Default extra packages
 
-```nix
-let
-  emacsLib = import ./lib/emacs.nix {
-    inherit lib pkgs emacs-overlay;
-  };
-in
-```
+These are installed automatically unless overridden:
 
-### `buildEmacsWithPackages` API
+- `jinx`
+- `tree-sitter-langs`
+- `treesit-grammars.with-all-grammars`
 
-```nix
-emacsLib.buildEmacsWithPackages {
-  emacsConfig = ...;                   # required
-  emacsWorkConfig = null;              # optional, default null
-  extraEmacsPackages = epkgs: [ ... ]; # optional, default defaultExtraEmacsPackages
-  emacsBuild = pkgs.emacs-pgtk;        # optional, default shown
-}
-```
+### Default tooling packages
 
-#### Arguments
+Packages the emacs configuration is known to depend upon.
 
-- `emacsConfig` (required): main Emacs config root.
-  - Expected: `init.el`, `early-init.el`, optional `extras/*.el`.
-- `emacsWorkConfig`:
-  - Optional separate path for work `*.el` files.  All such files
-    assumed to be in top-level directory.
-  - If `null`, defaults to `${configPath}/work` (backward compatible).
-- `extraEmacsPackages`:
-  - Function of shape `epkgs: [ ... ]` for additional Emacs packages.
-    Defaults to `defaultExtraEmacsPackages`.
-- `emacsBuild`:
-  - Emacs derivation to use for building the package. Defaults to
-    `pkgs.emacs-pgtk`.
+- `ripgrep`
+- `fd`
+- `git`
+- `copilot-language-server`
+- `nodejs`
+- `pandoc`
+- `jq`
+- `dhall`
+- `nerd-fonts.symbols-only`
+- `nixfmt`
+- `hunspell`
+- `hunspellDicts.en_AU`
 
-## Home Manager usage
+### Example: Home Manager integration
 
-In your HM module args:
+This is the pattern used in `hosts/zolotiy/home-manager/home.nix`:
 
 ```nix
 {
-  emacsConfigSource,
-  emacsConfigIsPath,
-  emacsWorkConfigPath ? null,
-  emacsWorkConfigIsPath ? emacsConfigIsPath,
+  inputs,
+  outputs,
+  lib,
+  config,
+  pkgs,
+  config-variables,
+  emacs-overlay,
   ...
 }:
-```
+let
+  mkIf = lib.mkIf;
 
-Then:
+  emacsLib = import ../../../lib/emacs.nix {
+    inherit lib pkgs emacs-overlay;
+  };
 
-```nix
-programs.emacs.package = emacsLib.buildEmacsWithPackages {
-  configPath =
-    if emacsConfigIsPath then
-      "${config.home.homeDirectory}/${emacsConfigSource}"
-    else
-      emacsConfigSource;
+  emacs-config = config-variables.emacs-config;
+  emacs-work-config = config-variables.emacs-work-config;
 
-  emacsWorkConfigPath =
-    if emacsWorkConfigPath == null then
-      null
-    else if emacsWorkConfigIsPath then
-      "${config.home.homeDirectory}/${emacsWorkConfigPath}"
-    else
-      emacsWorkConfigPath;
-
-  inherit emacsConfigIsPath emacsWorkConfigIsPath;
-};
-```
-
-Optional runtime symlink of full work directory (including non-`.el` files):
-
-```nix
-xdg.configFile."emacs/work" = mkIf (emacsWorkConfigPath != null) {
-  source =
-    if emacsWorkConfigIsPath then
-      config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/${emacsWorkConfigPath}"
-    else
-      emacsWorkConfigPath;
-  recursive = true;
-};
-```
-
-## Plain flake usage (no Home Manager)
-
-You can consume the helper directly from `packages`/`devShells`:
-
-```nix
+  emacsPackageArguments = {
+    inherit emacs-config emacs-work-config;
+    emacsBuild = pkgs.emacs-pgtk;
+  };
+in
 {
-  outputs = { self, nixpkgs, emacs-overlay, ... }:
-    let
-      system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; };
-      lib = nixpkgs.lib;
-      emacsLib = import ./lib/emacs.nix {
-        inherit lib pkgs emacs-overlay;
-      };
-    in
-    {
-      packages.${system}.emacs-custom = emacsLib.buildEmacsWithPackages {
-        configPath = ./emacs;                  # store path
-        emacsConfigIsPath = false;
-
-        emacsWorkConfigPath = /home/user/emacs-work;  # local path string
-        emacsWorkConfigIsPath = true;
-      };
-
-      devShells.${system}.default = pkgs.mkShell {
-        packages = [ self.packages.${system}.emacs-custom ];
-      };
+  programs = {
+    emacs = {
+      enable = true;
+      package = emacsLib.buildEmacsWithPackages emacsPackageArguments;
     };
+  };
+
+  xdg.configFile."emacs" = {
+    source = emacs-config;
+  };
+
+  xdg.configFile."emacs/work" = mkIf (!emacsLib.isWorkConfigEmpty emacs-work-config) {
+    source = emacs-work-config;
+    recursive = true;
+  };
+
+  home.packages =
+    [
+      # Other packages you want installed
+    ]
+    ++ emacsLib.defaultEmacsToolingPackages;
 }
 ```
 
-For fully reproducible builds, prefer store paths for both base and work config.
+### Notes
+
+- `isWorkConfigEmpty` checks whether the work config path exists and contains any `.el` files.
+- The helper follows a “config directory plus optional work directory” layout; it is not intended for arbitrary Emacs package assembly.
+- The resulting package is suitable for `programs.emacs.package` in Home Manager or as a system package in NixOS configuration.
+- The temporary combined config file is used only for detecting `use-package` declarations; it is not intended to be the actual runtime `init.el`.
 
 ## `nix-bash-aliases.nix`
 
@@ -152,8 +153,7 @@ there may be no meaningful local checkout.
 - `includeHomeManagerCommands` (default: `true`)
 - `includeProfileCommands` (default: `false`)
 
-At least one of `includeSystemCommands` or `includeHomeManagerCommands` must be
-`true`.
+At least one of the `include*Commands` must be `true`.
 
 ### Aliases
 

@@ -39,6 +39,18 @@
         "type": "github"
       }
     },
+    "emacs-work-config": {
+      "flake": false,
+      "locked": {
+        "path": "./empty",
+        "type": "path"
+      },
+      "original": {
+        "path": "./empty",
+        "type": "path"
+      },
+      "parent": []
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -95,6 +107,7 @@
       "inputs": {
         "emacs-config": "emacs-config",
         "emacs-overlay": "emacs-overlay",
+        "emacs-work-config": "emacs-work-config",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable"
