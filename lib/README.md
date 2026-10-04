@@ -20,14 +20,14 @@ This keeps your Emacs config in a normal directory layout while still letting Ni
 
 ### Inputs
 
-- `emacs-config`: path to the main Emacs config root
-  - expected files:
-    - `init.el`
-    - `early-init.el`
-    - `extras/*.el` (optional)
-- `emacs-work-config`: path to a work-specific config
-  - optional
-  - if empty, or if it contains no `.el` files, it is skipped
+- `config-variables` that contains:
+  - `emacs-config`: path to the main Emacs config root
+      - expected files:
+        - `init.el`
+        - `early-init.el`
+        - `extras/*.el` (optional)
+  - `emacs-work-config`: path to a work-specific config
+    - if empty, or if it contains no `.el` files in the top level, it is skipped
 - `extraEmacsPackages` (default: `defaultExtraEmacsPackages`): a function such as:
   - `epkgs: [ ... ]`
 - `emacsBuild` (default: `pkgs.emacs-pgtk`): the Emacs derivation to use

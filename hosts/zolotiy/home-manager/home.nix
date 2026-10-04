@@ -10,15 +10,13 @@
 }:
 let
   mkIf = lib.mkIf;
+
   emacsLib = import ../../../lib/emacs.nix {
     inherit lib pkgs emacs-overlay;
   };
 
-  emacs-config = config-variables.emacs-config;
-  emacs-work-config = config-variables.emacs-work-config;
-
   emacsPackageArguments = {
-    inherit emacs-config emacs-work-config;
+    inherit config-variables;
     emacsBuild = pkgs.emacs-pgtk;
   };
 
@@ -74,15 +72,17 @@ in
 
   # Instead of ~/.emacs.d
   xdg.configFile."emacs" = {
-    source = emacs-config;
+    source = config-variables.emacs-config;
   };
 
   # When work configuration is supplied separately, expose it below the
   # Emacs configuration directory at runtime as well as during packaging.
-  xdg.configFile."emacs/work" = mkIf (!emacsLib.isWorkConfigEmpty emacs-work-config) {
-    source = emacs-work-config;
-    recursive = true;
-  };
+  xdg.configFile."emacs/work" =
+    mkIf (!emacsLib.isWorkConfigEmpty config-variables.emacs-work-config)
+      {
+        source = config-variables.emacs-work-config;
+        recursive = true;
+      };
 
   home = {
     username = config-variables.username;

@@ -58,12 +58,13 @@ let
   # - Emacs derivation suitable for programs.emacs.package or systemPackages.
   buildEmacsWithPackages =
     {
-      emacs-config,
-      emacs-work-config,
+      config-variables,
       extraEmacsPackages ? defaultExtraEmacsPackages,
       emacsBuild ? pkgs.emacs-pgtk,
     }:
     let
+      emacs-config = config-variables.emacs-config;
+      emacs-work-config = config-variables.emacs-work-config;
       workConfigIsEmpty = isWorkConfigEmpty emacs-work-config;
 
       pkgsWithOverlay = pkgs.extend emacs-overlay.overlays.default;
