@@ -101,7 +101,8 @@
             emacs-config = inputs.emacs-config;
             emacs-work-config = inputs.emacs-work-config;
           };
-          commonSpecialArgs = {
+
+          baseSpecialArgs = {
             inherit
               inputs
               outputs
@@ -109,6 +110,9 @@
               ;
             config-variables = defaulted-config-variables;
           };
+
+          # Allow overriding parameters such as the emacs-overlay.
+          commonSpecialArgs = baseSpecialArgs // (defaulted-config-variables.extraSpecialArgs or { });
 
           # This allows re-use of this cache for any additional flake builds
           # within those systems.
@@ -123,7 +127,18 @@
               };
             };
           };
+
           pkgs = nixpkgs.legacyPackages.${config-variables.system};
+
+          computedExtraPackages =
+            if defaulted-config-variables ? extraPackages then
+              defaulted-config-variables.extraPackages {
+                inherit pkgs;
+                config-variables = defaulted-config-variables;
+                specialArgs = commonSpecialArgs;
+              }
+            else
+              { };
         in
         {
           nixosConfiguration = nixpkgs.lib.nixosSystem {
@@ -149,6 +164,9 @@
               inherit pkgs;
             }
           );
+
+          # per-host packages, populated from config-variables.extraPackages (default: {})
+          hostPackages = computedExtraPackages;
         };
 
       hostDefinitions = {
@@ -165,6 +183,26 @@
           #
           # Used to generate the flake path for home-manager and nixos-rebuild commands.
           repoRoot = "code/flakes";
+
+          extraPackages =
+            {
+              pkgs,
+              config-variables,
+              specialArgs,
+            }:
+            let
+              emacsLib = import ./lib/emacs.nix {
+                inherit (nixpkgs) lib;
+                inherit pkgs;
+                emacs-overlay = specialArgs.emacs-overlay;
+              };
+            in
+            {
+              "${emacsLib.localTestAttr}" = emacsLib.mkLocalTestPackage {
+                inherit config-variables;
+                emacsBuild = pkgs.emacs-pgtk;
+              };
+            };
         };
       };
 
@@ -219,11 +257,22 @@
               value = (mkConfiguration hostId).standaloneConfiguration;
             }) (builtins.filter (hostId: hostDefinitions.${hostId}.system == system) standaloneHosts)
           );
+
+          # Aggregate hostPackages from all hosts for this system
+          hostPackages =
+            let
+              allHostPackages = builtins.map (
+                hostId:
+                if hostDefinitions.${hostId}.system == system then (mkConfiguration hostId).hostPackages else { }
+              ) (builtins.attrNames hostDefinitions);
+            in
+            builtins.foldl' (a: b: a // b) { } allHostPackages;
         in
         {
           nixfmt = pkgs.nixfmt;
         }
         // standalonePackages
+        // hostPackages
       );
 
       apps = forAllSystems (system: {
