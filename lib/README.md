@@ -295,3 +295,83 @@ line, while Nix still manages the alias contents.
 - Keep the checkout path in `config-variables.repoRoot`.
 - This helper renders aliases only; it is not a general-purpose shell script generator.
 - The returned store path can be copied into a profile-installed output under `share/`.
+
+## `emacs-overlay-mirror.nix`
+
+This helper wraps a `nix-community/emacs-overlay` and re-points ELPA package
+sources at a GitHub mirror when the package homepage matches a configured ELPA
+domain.
+
+### Purpose
+
+Some Emacs packages are delivered from ELPA repositories whose package metadata
+points at upstream ELPA hosts. In locked-down or slow environments, fetching the
+tarballs directly from those hosts can be unreliable. This helper inspects each
+package's `meta.homepage`, finds the matching mirror domain, and overrides the
+package source URL so it is fetched from a mirror instead.
+
+This keeps the main Emacs overlay intact, while preserving the original package
+version and hash checks.
+
+### Inputs
+
+The module exports:
+
+- `mkMirroredEmacsOverlay`
+- `defaultMirrorByDomain`
+
+`mkMirroredEmacsOverlay` accepts:
+
+- `emacsOverlay`: the overlay value from `nix-community/emacs-overlay`
+- `mirrorByDomain` (optional): a domain-to-URL mapping; defaults to
+  `defaultMirrorByDomain`
+
+The default mapping is:
+
+```nix
+{
+  "elpa.gnu.org" = "https://raw.githubusercontent.com/d12frosted/elpa-mirror/refs/heads/master/gnu";
+  "elpa.nongnu.org" = "https://raw.githubusercontent.com/d12frosted/elpa-mirror/refs/heads/master/nongnu";
+}
+```
+
+### How it works
+
+The helper wraps the overlay's `overlays.default` function and patches the
+`emacsPackagesFor` scope:
+
+- it scans each package in the generated Emacs package set
+- it checks whether the package is overrideable and has a `meta.homepage`
+- it compares the homepage against the configured mirror domains
+- if a matching domain is found, it rebuilds the package source URL using the
+  mirror base URL and the package version
+- it keeps the original `outputHash` so the package remains reproducible
+
+If no mirror matches, the package is returned unchanged.
+
+### Example
+
+```nix
+let
+  emacsMirror = import ./lib/emacs-overlay-mirror.nix {
+    inherit lib pkgs;
+  };
+in
+{
+  nixpkgs.overlays = [
+    emacsMirror.mkMirroredEmacsOverlay {
+      emacsOverlay = inputs.emacs-overlay;
+    }
+  ];
+}
+```
+
+### Notes
+
+- This only rewrites packages whose homepage matches one of the configured
+  domains.
+- It relies on the package being overrideable via `overrideAttrs`.
+- It does not rewrite arbitrary package URLs; it only handles those that map to
+  known ELPA mirror domains.
+- The original package integrity is preserved by reusing the existing source
+  hash.
