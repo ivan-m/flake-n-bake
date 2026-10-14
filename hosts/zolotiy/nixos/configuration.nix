@@ -124,7 +124,11 @@
 
   fonts = {
     enableDefaultPackages = true;
-    packages = [ pkgs.dejavu_fonts ];
+    packages = [
+      pkgs.dejavu_fonts
+      pkgs.noto-fonts
+      pkgs.hack-font
+    ];
   };
 
   hardware = {
