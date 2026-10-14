@@ -18,7 +18,7 @@ let
   # corresponding mirror.
   #
   # Inputs:
-  #   emacsOverlay:
+  #   emacs-overlay:
   #     The overlay value returned by nix-community/emacs-overlay. The helper
   #     expects an attribute set with an `overlays.default` attribute.
   #
@@ -45,7 +45,7 @@ let
   #   {
   #     nixpkgs.overlays = [
   #       emacsMirror.mkMirroredEmacsOverlay {
-  #         emacsOverlay = inputs.emacs-overlay;
+  #         emacs-overlay = inputs.emacs-overlay;
   #       }
   #     ];
   #   }
@@ -54,16 +54,16 @@ let
   # does not match a configured mirror domain, it is left as-is.
   mkMirroredEmacsOverlay =
     {
-      emacsOverlay,
+      emacs-overlay,
       mirrorByDomain ? defaultMirrorByDomain,
     }:
-    emacsOverlay
+    emacs-overlay
     // {
-      overlays = emacsOverlay.overlays // {
+      overlays = emacs-overlay.overlays // {
         default =
           final: prev:
           let
-            baseSet = emacsOverlay.overlays.default final prev;
+            baseSet = emacs-overlay.overlays.default final prev;
           in
           baseSet
           // {

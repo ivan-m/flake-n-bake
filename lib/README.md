@@ -322,7 +322,7 @@ The module exports:
 
 `mkMirroredEmacsOverlay` accepts:
 
-- `emacsOverlay`: the overlay value from `nix-community/emacs-overlay`
+- `emacs-overlay`: the overlay value from `nix-community/emacs-overlay`
 - `mirrorByDomain` (optional): a domain-to-URL mapping; defaults to
   `defaultMirrorByDomain`
 
@@ -360,7 +360,7 @@ in
 {
   nixpkgs.overlays = [
     emacsMirror.mkMirroredEmacsOverlay {
-      emacsOverlay = inputs.emacs-overlay;
+      emacs-overlay = inputs.emacs-overlay;
     }
   ];
 }

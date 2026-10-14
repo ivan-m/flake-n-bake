@@ -112,7 +112,16 @@
           };
 
           # Allow overriding parameters such as the emacs-overlay.
-          commonSpecialArgs = baseSpecialArgs // (defaulted-config-variables.extraSpecialArgs or { });
+          #
+          # If defaulted-config-variables.extraSpecialArgs is defined,
+          # it should be a function that takes in pkgs and returns a
+          # set of additional specialArgs to merge with
+          # baseSpecialArgs.
+          commonSpecialArgs =
+            if defaulted-config-variables ? extraSpecialArgs then
+              baseSpecialArgs // (defaulted-config-variables.extraSpecialArgs pkgs)
+            else
+              baseSpecialArgs;
 
           # This allows re-use of this cache for any additional flake builds
           # within those systems.
