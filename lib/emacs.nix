@@ -27,6 +27,11 @@ let
     nixfmt
     hunspell
     hunspellDicts.en_AU # TODO: make lang configurable?
+
+    # agent-shell
+    imagemagick
+    wl-clipboard # safe to
+    xclip # have both
   ];
 
   # Accept null/empty paths safely.
