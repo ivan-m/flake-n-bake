@@ -87,7 +87,6 @@ in
 
         (emacsLib.mkLocalTestLauncher {
           inherit config-variables;
-          flakeDir = "${config.home.homeDirectory}/${config-variables.repoRoot}";
           emacsConfigOverride = "${config.home.homeDirectory}/code/emacs";
         })
       ]

@@ -207,7 +207,7 @@
               };
             in
             {
-              "${emacsLib.localTestAttr}" = emacsLib.mkLocalTestPackage {
+              "${emacsLib.mkLocalTestAttrName config-variables.hostId}" = emacsLib.mkLocalTestPackage {
                 inherit config-variables;
                 emacsBuild = pkgs.emacs-pgtk;
               };

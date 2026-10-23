@@ -129,9 +129,16 @@ let
       extraEmacsPackages = extraEmacsPackages;
     };
 
-  # Canonical attribute name used by the flake to expose the
-  # per-system test package
+  # Canonical suffix used by the flake to expose per-host local test packages.
   localTestAttr = "emacs-local-test";
+
+  # Host-specific package attr name under `packages.<system>`.
+  mkLocalTestAttrName = hostId: "${hostId}-${localTestAttr}";
+
+  # Full flake target path for local test package.
+  mkLocalTestPackageTarget =
+    config-variables:
+    "packages.${config-variables.system}.${mkLocalTestAttrName config-variables.hostId}";
 
   # Convenience wrapper that returns the test package derivation.
   # This function is intended to be called after importing this lib with a system-specific `pkgs`.
@@ -148,43 +155,137 @@ let
       inherit config-variables extraEmacsPackages emacsBuild;
     };
 
+  # Shared shell fragment:
+  # expects CONFIG_PATH, WORK_CONFIG_PATH, CONFIG_DIR to be set.
+  mkInitDirectoryShell = ''
+    mkdir -p "$CONFIG_DIR"
+    ln -s "$CONFIG_PATH"/* "$CONFIG_DIR"/
+
+    if [[ -d "$WORK_CONFIG_PATH" ]]; then
+      shopt -s nullglob
+      work_el_files=("$WORK_CONFIG_PATH"/*.el)
+      if (( ''${#work_el_files[@]} > 0 )); then
+        mkdir -p "$CONFIG_DIR/work"
+        ln -s "$WORK_CONFIG_PATH"/* "$CONFIG_DIR/work"/
+      fi
+    fi
+  '';
+
+  # Build an Emacs init directory by symlinking config files and optional work config.
+  # This is the single source of truth for init-directory materialization.
+  mkInitDirectory =
+    {
+      emacsConfigPath,
+      emacsWorkConfigPath,
+      name ? "emacs-init-directory",
+    }:
+    pkgs.runCommandLocal name { } ''
+      CONFIG_PATH="${toString emacsConfigPath}"
+      WORK_CONFIG_PATH="${toString emacsWorkConfigPath}"
+      CONFIG_DIR="$out"
+
+      ${mkInitDirectoryShell}
+    '';
+
+  # Shared Launcher script:
+  # - optional prelude to compute EMACS_BIN dynamically
+  # - common validation/logging/exec path
+  # - prelude may set CONFIG_DIR; otherwise initDirectory is used
+  mkEmacsLauncher =
+    {
+      name,
+      initDirectory,
+      emacsBin ? null,
+      prelude ? "",
+      useExec ? true,
+    }:
+    let
+      emacsBinLine = if emacsBin != null then ''EMACS_BIN="${toString emacsBin}"'' else "";
+      execPrefix = if useExec then "exec" else "";
+    in
+    pkgs.writeShellScriptBin name ''
+      set -euo pipefail
+
+      # This may be overridden by the prelude, but defaults to the initDirectory.
+      CONFIG_DIR="${toString initDirectory}"
+      ${prelude}
+      CONFIG_DIR="''${CONFIG_DIR:-${toString initDirectory}}"
+      ${emacsBinLine}
+
+      # Validate required launcher inputs.
+      if [ -z "''${EMACS_BIN:-}" ] || [ ! -x "$EMACS_BIN" ]; then
+        echo "ERROR: Emacs binary is missing or not executable: ''${EMACS_BIN:-<unset>}" >&2
+        exit 1
+      fi
+
+      if [ ! -d "$CONFIG_DIR" ]; then
+        echo "ERROR: init directory does not exist: $CONFIG_DIR" >&2
+        exit 1
+      fi
+
+      # `--init-directory` expects init.el in this directory.
+      if [ ! -r "$CONFIG_DIR/init.el" ]; then
+        echo "ERROR: missing readable init.el in init directory: $CONFIG_DIR/init.el" >&2
+        exit 1
+      fi
+
+      # On non-NixOS hosts, avoid inheriting GTK/GI module paths that can
+      # pull in incompatible host libs (e.g. old RHEL GLib/GIO).
+      if [ ! -e /etc/NIXOS ]; then
+        unset GIO_EXTRA_MODULES
+        unset GI_TYPELIB_PATH
+        unset GSETTINGS_SCHEMA_DIR
+      fi
+
+      ${execPrefix}"$EMACS_BIN" \
+        --init-directory "$CONFIG_DIR" \
+        --debug-init \
+        "$@"
+    '';
+
+  # Stable runtime launcher to run a specific Emacs package with a specific init directory.
+  mkWrappedEmacsLauncher =
+    {
+      emacsPackage,
+      config-variables,
+      name ? "emacs",
+    }:
+    let
+      emacsInitDirectory = mkInitDirectory {
+        emacsConfigPath = config-variables.emacs-config;
+        emacsWorkConfigPath = config-variables.emacs-work-config;
+        name = "emacs-init-directory";
+      };
+    in
+    mkEmacsLauncher {
+      inherit name;
+      initDirectory = emacsInitDirectory;
+      emacsBin = "${emacsPackage}/bin/emacs";
+    };
+
   # mkLocalTestLauncher: builds a small script that:
-  #  - optionally rebuilds the flake package at "${flakeDir}#${packageTarget}"
-  #    using --override-input emacs-config/emacs-work-config (if provided),
-  #  - materialises the *same* config into a temp init-directory (merging work/),
-  #  - runs the resulting Emacs binary with --init-directory "$CONFIG_DIR".
-  #
-  # Behaviour changes:
-  #  - `packageTarget` is optional. When omitted we use the canonical per-system
-  #    target "packages.<system>.emacs-local-test".
+  # - optionally rebuilds the flake package at "${flakeDir}#${packageTarget}"
+  #   using --override-input emacs-config ... --override-input emacs-work-config
+  #   materialises the "same" script into a Nix-built init-directory derivation (merging work/),
+  #   runs the resulting Emacs binary with --init-directory "$CONFIG_DIR".
   #
   # Required inputs:
-  #  - config-variables
-  #  - flakeDir -- path to the flake root (string)
-  #
+  # - flakeDir
+  # - packageTarget
   # Optional inputs:
-  #  - packageTarget            -- flake output attribute path (string); e.g. "packages.x86_64-linux.emacs-local-test"
-  #  - emacsConfigOverride      -- local path to override emacs-config input (null = don't override)
-  #  - emacsWorkConfigOverride  -- local path to override emacs-work-config input (null = don't override)
+  # - emacsConfigOverride
+  # - emacsWorkConfigOverride
   mkLocalTestLauncher =
     {
       config-variables,
-      flakeDir,
-      packageTarget ? null,
+      flakeDir ? "/home/${config-variables.username}/${config-variables.repoRoot}",
+      packageTarget ? mkLocalTestPackageTarget config-variables,
       emacsConfigOverride ? null,
       emacsWorkConfigOverride ? null,
     }:
     let
-      # default packageTarget uses the flake packages.<system>.emacs-local-test convention
-      inferredPackageTarget =
-        if packageTarget != null then
-          packageTarget
-        else
-          "packages.${config-variables.system}.emacs-local-test";
-
       effectiveConfigPath =
         if emacsConfigOverride != null then emacsConfigOverride else config-variables.emacs-config;
-
       effectiveWorkConfigPath =
         if emacsWorkConfigOverride != null then
           emacsWorkConfigOverride
@@ -194,68 +295,47 @@ let
       hasConfigOverride = emacsConfigOverride != null;
       hasWorkConfigOverride = emacsWorkConfigOverride != null;
 
-      hasWorkConfig = !isWorkConfigEmpty effectiveWorkConfigPath;
-
       cfgPathString = toString effectiveConfigPath;
       workPathString = toString effectiveWorkConfigPath;
-      targetString = toString inferredPackageTarget;
+      targetString = toString packageTarget;
     in
-    pkgs.writeShellScriptBin "test-emacs" ''
-            set -euo pipefail
+    mkEmacsLauncher {
+      name = "test-emacs";
+      initDirectory = config-variables.emacs-config;
+      useExec = false;
+      prelude = ''
+        CONFIG_PATH="${cfgPathString}"
+        WORK_CONFIG_PATH="${workPathString}"
 
-            CONFIG_PATH="${cfgPathString}"
-            WORK_CONFIG_PATH="${workPathString}"
+        if [[ -z "$CONFIG_PATH" || ! -d "$CONFIG_PATH" ]]; then
+          echo "ERROR: missing or invalid emacs-config path: $CONFIG_PATH" >&2
+          exit 1
+        fi
 
-            if [[ -n "$CONFIG_PATH" && ! -d "$CONFIG_PATH" ]]; then
-              echo "ERROR: emacs-config source does not exist: $CONFIG_PATH" >&2
-              exit 1
-            fi
+        STORE_PATH=$(NIXPKGS_ALLOW_UNFREE=1 nix build --impure --no-link --print-out-paths --log-format raw \
+          ${lib.optionalString hasConfigOverride "--override-input emacs-config \"path:$CONFIG_PATH\""} \
+          ${lib.optionalString hasWorkConfigOverride "--override-input emacs-work-config \"path:$WORK_CONFIG_PATH\""} \
+          "${flakeDir}#${targetString}")
 
-            if [[ -n "$WORK_CONFIG_PATH" && ! -d "$WORK_CONFIG_PATH" ]]; then
-              echo "ERROR: emacs-work-config source does not exist: $WORK_CONFIG_PATH" >&2
-              exit 1
-            fi
+        EMACS_BIN="$STORE_PATH/bin/emacs"
 
-      # Rebuild the flake package target with overrides if requested.  We intentionally
-      # use --impure because the override-input path is typically a local workspace path.
-      # --log-format to avoid the spinner making noise.
-      STORE_PATH=$(NIXPKGS_ALLOW_UNFREE=1 nix build --impure --no-link --print-out-paths --log-format raw \
-        ${lib.optionalString hasConfigOverride " --override-input emacs-config \"path:$CONFIG_PATH\""} \
-        ${lib.optionalString hasWorkConfigOverride " --override-input emacs-work-config \"path:$WORK_CONFIG_PATH\""} \
-        "${flakeDir}#${targetString}")
+        CONFIG_DIR="$(mktemp -d -t test-emacs-init-XXXXXX)"
+        trap 'rm -rf "$CONFIG_DIR"' EXIT
 
-      EMACS_BIN="$STORE_PATH/bin/emacs"
-      if [[ ! -x "$EMACS_BIN" ]]; then
-        echo "ERROR: built Emacs binary is not executable: $EMACS_BIN" >&2
-        exit 1
-      fi
-            # Create a runtime init directory that mirrors the source used for the build.
-            CONFIG_DIR="$(mktemp -d)"
-            trap 'rm -rf "$CONFIG_DIR"' EXIT
-
-            cp -a "$CONFIG_PATH"/. "$CONFIG_DIR"/
-
-            ${lib.optionalString hasWorkConfig ''
-              mkdir -p "$CONFIG_DIR/work"
-              cp -a "$WORK_CONFIG_PATH"/. "$CONFIG_DIR/work"/
-            ''}
-
-            echo "Launching Emacs: $EMACS_BIN"
-            echo "  init directory: $CONFIG_DIR"
-
-            "$EMACS_BIN" \
-              --init-directory "$CONFIG_DIR" \
-              "$@"
-    '';
-
+        ${mkInitDirectoryShell}
+      '';
+    };
 in
 {
   inherit
-    buildEmacsWithPackages
     defaultExtraEmacsPackages
     defaultEmacsToolingPackages
+    buildEmacsWithPackages
     isWorkConfigEmpty
+    mkWrappedEmacsLauncher
     localTestAttr
+    mkLocalTestAttrName
+    mkLocalTestPackageTarget
     mkLocalTestPackage
     mkLocalTestLauncher
     ;
