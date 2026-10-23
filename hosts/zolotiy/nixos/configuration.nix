@@ -44,6 +44,10 @@
     #   };
     # });
 
+    # Fix up misaligned module entries conflicting with the kernel
+    # version, which can cause build or boot failures.
+    extraModulePackages = lib.mkForce [ ];
+
     loader = {
       systemd-boot = {
         enable = true;
