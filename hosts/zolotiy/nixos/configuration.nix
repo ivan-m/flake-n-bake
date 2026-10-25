@@ -133,6 +133,14 @@
       pkgs.noto-fonts
       pkgs.hack-font
     ];
+    fontconfig = {
+      enable = true;
+      defaultFonts = {
+        monospace = [ "Hack" ];
+        sansSerif = [ "Noto Sans" ];
+        serif = [ "Noto Serif" ];
+      };
+    };
   };
 
   hardware = {
