@@ -32,6 +32,7 @@ let
     imagemagick
     wl-clipboard # safe to
     xclip # have both
+    github-copilot-cli # Would rather not have this, but seems to be launched.
   ];
 
   # Accept null/empty paths safely.
