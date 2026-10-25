@@ -33,12 +33,15 @@ in
 {
   nixpkgs.config.allowUnfreePredicate =
     pkg:
-    builtins.elem (pkgs.lib.getName pkg) [
-      "steam"
-      "steam-run"
-      "steam-original"
-      "copilot-language-server"
-    ];
+    let
+      toolingPkgNames = map (p: pkgs.lib.getName p) emacsLib.defaultEmacsToolingPackages;
+      allowedPkgNames = toolingPkgNames ++ [
+        "steam"
+        "steam-run"
+        "steam-original"
+      ];
+    in
+    builtins.elem (pkgs.lib.getName pkg) allowedPkgNames;
 
   programs = {
     home-manager.enable = true;
