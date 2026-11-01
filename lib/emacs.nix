@@ -101,9 +101,12 @@ let
         dir:
         if builtins.pathExists dir then
           let
-            allFiles = builtins.attrNames (builtins.readDir dir);
+            allFiles = builtins.readDir dir;
+            # Skip Emacs lock files (.#foo.el, dangling symlinks) and other non-files.
+            isConfig =
+              f: allFiles.${f} == "regular" && lib.hasSuffix ".el" f && !(lib.hasPrefix ".#" f);
           in
-          map (f: dir + "/${f}") (builtins.filter (f: lib.hasSuffix ".el" f) allFiles)
+          map (f: dir + "/${f}") (builtins.filter isConfig (builtins.attrNames allFiles))
         else
           [ ];
 
