@@ -62,9 +62,6 @@
     initrd = {
       enable = true;
       # verbose = false;
-      systemd = {
-        enable = true;
-      };
       includeDefaultModules = true;
       availableKernelModules = [
         "evdev"
@@ -82,7 +79,6 @@
             # Has some security implications
             allowDiscards = true;
             bypassWorkqueues = true;
-            preLVM = true;
           };
         };
       };
