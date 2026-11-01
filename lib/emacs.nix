@@ -32,7 +32,8 @@ let
     imagemagick
     wl-clipboard # safe to
     xclip # have both
-    github-copilot-cli # Would rather not have this, but seems to be launched.
+    github-copilot-cli # Would rather not have this, but seems to be launched/needed.
+    curl # probably already here but just in case
   ];
 
   # Accept null/empty paths safely.
@@ -103,8 +104,7 @@ let
           let
             allFiles = builtins.readDir dir;
             # Skip Emacs lock files (.#foo.el, dangling symlinks) and other non-files.
-            isConfig =
-              f: allFiles.${f} == "regular" && lib.hasSuffix ".el" f && !(lib.hasPrefix ".#" f);
+            isConfig = f: allFiles.${f} == "regular" && lib.hasSuffix ".el" f && !(lib.hasPrefix ".#" f);
           in
           map (f: dir + "/${f}") (builtins.filter isConfig (builtins.attrNames allFiles))
         else
