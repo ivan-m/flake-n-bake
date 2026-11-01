@@ -37,8 +37,6 @@ assert includeSystemCommands || includeHomeManagerCommands || includeProfileComm
 }
 // lib.optionalAttrs includeProfileCommands {
   # This assumes single-user install or similar that we don't need to sudo for. This will need to be adjusted for a multi-user install.
-  nix-profile-install = "nix profile add \"${flakeRoot}#${hostId}\"";
-
   nix-profile-list = "nix profile list";
 
   nix-profile-upgrade = "nix profile upgrade --all";
