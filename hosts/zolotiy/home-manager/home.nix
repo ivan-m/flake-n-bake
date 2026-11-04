@@ -29,6 +29,15 @@ let
     includeSystemCommands = true;
     includeHomeManagerCommands = true;
   };
+
+  agentSkills = import ../../../lib/agent-skills.nix { inherit lib; };
+
+  skillSources = [
+    "${inputs.mattpocock-skills}/skills/engineering"
+    "${inputs.mattpocock-skills}/skills/productivity"
+    # Easily drop in other repos here later, e.g.:
+    # "${inputs.another-repo}/skills"
+  ];
 in
 {
   nixpkgs.config.allowUnfreePredicate =
@@ -76,6 +85,8 @@ in
         source = config-variables.emacs-work-config;
         recursive = true;
       };
+
+  home.file = agentSkills.mkHomeFiles { sources = skillSources; };
 
   home = {
     username = config-variables.username;

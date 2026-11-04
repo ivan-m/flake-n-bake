@@ -51,6 +51,14 @@
       url = "path:./empty";
       flake = false; # Just get the files, not a full flake output
     };
+
+    # Trying to sanely configure and install LLM skills.  Because the
+    # ecosystem hasn't done a good job of managing it we have to do
+    # manual setup.
+    mattpocock-skills = {
+      url = "github:mattpocock/skills";
+      flake = false; # Necessary because the repo doesn't contain a flake.nix itself
+    };
   };
 
   # Use the Nix community Cachix cache for faster builds. This is
