@@ -29,6 +29,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    plasma-manager = {
+      url = "github:nix-community/plasma-manager";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        home-manager.follows = "home-manager";
+      };
+    };
+
     emacs-overlay = {
       url = "github:nix-community/emacs-overlay";
       inputs = {
@@ -171,6 +179,7 @@
             extraSpecialArgs = commonSpecialArgs;
             modules = [
               sharedNixSettings
+              inputs.plasma-manager.homeModules.plasma-manager
               ./hosts/${config-variables.hostId}/home-manager/home.nix
             ];
           };

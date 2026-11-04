@@ -40,6 +40,8 @@ let
   ];
 in
 {
+  imports = [ ./plasma.nix ];
+
   nixpkgs.config.allowUnfreePredicate =
     pkg:
     let
