@@ -16,23 +16,58 @@
     # configFile.plasmaparc.General.GlobalMuteSinksMutedDevices =
     #   "alsa_output.pci-0000_00_1f.3-platform-sof_sdw.HiFi__Speaker__sink.0,alsa_output.pci-0000_00_1f.3-platform-sof_sdw.HiFi__HDMI1__sink.0,alsa_output.pci-0000_00_1f.3-platform-sof_sdw.HiFi__HDMI2__sink.0,alsa_output.pci-0000_00_1f.3-platform-sof_sdw.HiFi__HDMI3__sink.0";
 
-    workspace.wallpaper =
-      "${pkgs.kdePackages.plasma-workspace-wallpapers}/share/wallpapers/EveningGlow/contents/images/2560x1600.jpg";
+    workspace.wallpaper = "${pkgs.kdePackages.plasma-workspace-wallpapers}/share/wallpapers/EveningGlow/contents/images/2560x1600.jpg";
 
     panels = [
       {
         location = "bottom";
         floating = false;
         widgets = [
-          "org.kde.plasma.kickoff"
-          "org.kde.plasma.pager"
-          "org.kde.plasma.icontasks"
+          {
+            kickoff = {
+              icon = "nix-snowflake";
+              sortAlphabetically = true;
+            };
+          }
+          {
+            iconTasks = {
+              iconsOnly = false;
+              launchers = [ ]; # No launchers
+            };
+          }
           "org.kde.plasma.marginsseparator"
           {
-            systemTray.items.extra = [ "org.kde.kdeconnect" ];
+            systemTray = {
+              items = {
+                extra = [
+                  "org.kde.plasma.manage-inputmethod"
+                  "org.kde.plasma.clipboard"
+                  "org.kde.plasma.cameraindicator"
+                  "org.kde.kdeconnect"
+                  "org.kde.plasma.bluetooth"
+                  "org.kde.plasma.keyboardlayout"
+                  "org.kde.plasma.mediacontroller"
+                  "org.kde.plasma.notifications"
+                  "org.kde.plasma.devicenotifier"
+                  "org.kde.plasma.printmanager"
+                  "org.kde.plasma.networkmanagement"
+                  "org.kde.plasma.brightness"
+                  "org.kde.plasma.volume"
+                  "org.kde.plasma.keyboardindicator"
+                  "org.kde.kscreen"
+                  "org.kde.plasma.battery"
+                ];
+                shown = [
+                  "org.kde.plasma.battery"
+                ];
+                hidden = [
+                  "org.kde.plasma.clipboard"
+                  "org.kde.plasma.brightness"
+                ];
+              };
+            };
           }
           "org.kde.plasma.digitalclock"
-          "org.kde.plasma.showdesktop"
         ];
       }
     ];

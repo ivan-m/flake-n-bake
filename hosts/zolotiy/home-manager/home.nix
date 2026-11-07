@@ -75,18 +75,31 @@ in
   };
 
   # Instead of ~/.emacs.d
-  xdg.configFile."emacs" = {
-    source = config-variables.emacs-config;
-  };
+  xdg = {
+    configFile."emacs" = {
+      source = config-variables.emacs-config;
+    };
 
-  # When work configuration is supplied separately, expose it below the
-  # Emacs configuration directory at runtime as well as during packaging.
-  xdg.configFile."emacs/work" =
-    mkIf (!emacsLib.isWorkConfigEmpty config-variables.emacs-work-config)
-      {
-        source = config-variables.emacs-work-config;
-        recursive = true;
-      };
+    # When work configuration is supplied separately, expose it below the
+    # Emacs configuration directory at runtime as well as during packaging.
+    configFile."emacs/work" = mkIf (!emacsLib.isWorkConfigEmpty config-variables.emacs-work-config) {
+      source = config-variables.emacs-work-config;
+      recursive = true;
+    };
+
+    autostart = {
+      enable = true;
+      entries = [
+        "${
+          pkgs.makeDesktopItem {
+            name = "solaar";
+            desktopName = "Solaar";
+            exec = "${lib.getExe pkgs.solaar} --window hide";
+          }
+        }/share/applications/solaar.desktop"
+      ];
+    };
+  };
 
   home.file = agentSkills.mkHomeFiles { sources = skillSources; };
 
