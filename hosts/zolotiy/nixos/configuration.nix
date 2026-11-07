@@ -14,6 +14,7 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
+    ./kde-luks-autologin.nix
   ];
 
   nix = {
@@ -113,14 +114,6 @@
     # It will just not appear on screen unless a key is pressed
     loader.timeout = 0;
   };
-
-  # https://wiki.nixos.org/wiki/Full_Disk_Encryption
-  services.displayManager.autoLogin.user = "ivan";
-  systemd.services.display-manager.serviceConfig.KeyringMode = "inherit";
-  security.pam.services.sddm-autologin.text = pkgs.lib.mkBefore ''
-    auth optional ${pkgs.systemd}/lib/security/pam_systemd_loadkey.so
-    auth include sddm
-  '';
 
   fonts = {
     enableDefaultPackages = true;
@@ -425,14 +418,6 @@
 
       cosmic-greeter = {
         enable = false;
-      };
-
-      sddm = {
-        enable = true;
-
-        wayland = {
-          enable = true;
-        };
       };
 
       defaultSession = "plasma";
