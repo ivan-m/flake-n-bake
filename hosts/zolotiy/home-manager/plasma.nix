@@ -1,5 +1,14 @@
 { options, pkgs, ... }:
 {
+  programs.konsole = {
+    enable = true;
+    defaultProfile = "Default";
+    profiles.Default.font = {
+      name = "Hack";
+      size = 10;
+    };
+  };
+
   programs.plasma = {
     enable = true;
     overrideConfig = true;
