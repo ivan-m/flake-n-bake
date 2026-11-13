@@ -108,6 +108,10 @@
       "boot.shell_on_fail"
       "udev.log_priority=3"
       "rd.systemd.show_status=auto"
+      # The KVM's Genesys Logic hub often fails the first descriptor reads
+      # (error -110) after a switch; fail fast and retry with the old scheme.
+      "usbcore.old_scheme_first=1"
+      "usbcore.initial_descriptor_timeout=1000"
     ];
     # Hide the OS choice for bootloaders.
     # It's still possible to open the bootloader list by pressing any key
