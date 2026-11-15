@@ -45,7 +45,9 @@ in
   nixpkgs.config.allowUnfreePredicate =
     pkg:
     let
-      toolingPkgNames = map (p: pkgs.lib.getName p) emacsLib.defaultEmacsToolingPackages;
+      toolingPkgNames = map (p: pkgs.lib.getName p) (
+        emacsLib.defaultEmacsToolingPackages ++ emacsLib.homeEmacsToolingPackages
+      );
       allowedPkgNames = toolingPkgNames ++ [
         "steam"
         "steam-run"
@@ -119,6 +121,7 @@ in
           emacsConfigOverride = "${config.home.homeDirectory}/code/emacs";
         })
       ]
-      ++ emacsLib.defaultEmacsToolingPackages;
+      ++ emacsLib.defaultEmacsToolingPackages
+      ++ emacsLib.homeEmacsToolingPackages;
   };
 }

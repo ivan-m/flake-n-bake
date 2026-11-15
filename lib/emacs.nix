@@ -18,7 +18,6 @@ let
     ripgrep
     fd
     git
-    copilot-language-server
     nodejs
     pandoc
     jq
@@ -32,8 +31,24 @@ let
     imagemagick
     wl-clipboard # safe to
     xclip # have both
-    github-copilot-cli # Would rather not have this, but seems to be launched/needed.
     curl # probably already here but just in case
+
+    # We include this in the default list as currently copilot is used
+    # for work and personal config, but we may want to split it out
+    # later.
+    copilot-language-server
+    github-copilot-cli # Would rather not have this, but seems to be launched/needed.
+  ];
+
+  # Packages that are used in personal config at home but not at work
+  # (typically additional AI tooling).
+  #
+  # This is primarily for agent-shell in the Emacs config, that
+  # detects at startup which AI tooling is available and makes those
+  # agents available accordingly.
+  homeEmacsToolingPackages = with pkgs; [
+    claude-agent-acp
+    claude-code # dependency of claude-agent-acp, but listing explicitly for allowUnfreePredicate
   ];
 
   # Accept null/empty paths safely.
@@ -131,6 +146,15 @@ let
       defaultInitFile = false;
       package = emacsBuild;
       extraEmacsPackages = extraEmacsPackages;
+      override = final: prev: {
+        # AI-related packages move fast; use latest ones possible.
+        inherit (prev.melpaPackages)
+          copilot
+          agent-shell
+          acp
+          shell-maker
+          ;
+      };
     };
 
   # Canonical suffix used by the flake to expose per-host local test packages.
@@ -334,6 +358,7 @@ in
   inherit
     defaultExtraEmacsPackages
     defaultEmacsToolingPackages
+    homeEmacsToolingPackages
     buildEmacsWithPackages
     isWorkConfigEmpty
     mkWrappedEmacsLauncher
