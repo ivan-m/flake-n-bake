@@ -75,6 +75,13 @@ in
         "ignorespace"
       ];
     };
+    direnv = {
+      enable = true;
+      enableBashIntegration = true;
+      nix-direnv = {
+        enable = true;
+      };
+    };
     emacs = {
       enable = true;
       package = emacsLib.buildEmacsWithPackages emacsPackageArguments;

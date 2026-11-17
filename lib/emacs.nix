@@ -26,6 +26,7 @@ let
     nixfmt
     hunspell
     hunspellDicts.en_AU # TODO: make lang configurable?
+    direnv # Probably already enabled in home-manager, but just to make sure
 
     # agent-shell
     imagemagick
