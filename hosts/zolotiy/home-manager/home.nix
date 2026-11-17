@@ -69,6 +69,11 @@ in
       shellAliases = nixShellAliases // {
         # Add any additional shell aliases here
       };
+      historyControl = [
+        "erasedups"
+        "ignoredups"
+        "ignorespace"
+      ];
     };
     emacs = {
       enable = true;
